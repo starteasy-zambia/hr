@@ -87,7 +87,7 @@ const { useState, useEffect } = React;
 const CLOUDINARY_CONFIG = {
   cloudName: "dc21o9hz",
   // PASTE YOUR UNSIGNED UPLOAD PRESET HERE:
-  uploadPreset: "starteasy_docs" 
+  uploadPreset: "YOUR_UNSIGNED_UPLOAD_PRESET_HERE" 
 };
 
 // ─── SHARED FIREBASE PROJECT (same as agent portal) ──────────────────────
@@ -111,6 +111,94 @@ const fmt = (s = '') => String(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>
 
 // ─── ROLES ──────────────────────────────────────────────────────────────
 const ROLES = {
+  admin_advisor: {
+    id: 'admin_advisor',
+    title: 'Client Administrative Services Advisor',
+    summary: 'You are the frontline expert and problem solver for our clients. You will work directly with individuals and businesses who need administrative services, advising them on the requirements for PACRA, ZRA, NAPSA, NHIMA, WCFCB, EIZ, and NCC registrations. Your job is to make complex compliance processes feel easy and seamless for our clients.',
+    reporting: 'You will report directly to the Founder / Director of Operations.',
+    responsibilities: [
+      "**Client Consultation & Advice:** You will speak directly with potential customers to understand their business needs and advise them on the exact registrations and compliance steps they require.",
+      "**Desk Management:** You will take ownership of one or more specific service desks (e.g., PACRA Desk, ZRA Tax Desk, NAPSA/NHIMA Desk) and become the resident expert in those processes.",
+      "**Document Collection & Verification:** You will guide clients to collect the correct documents, verify them for accuracy, and ensure nothing is missing before submission.",
+      "**Application Processing:** You will manage the end-to-end processing of client applications, ensuring all forms are submitted correctly and following up to ensure timely approvals.",
+      "**Ongoing Administrative Support:** You will handle annual returns, tax filings, and ongoing compliance queries for existing clients, ensuring they never fall out of good standing."
+    ],
+    month1: 'You will master the exact requirements, pricing, and documentation for all services across PACRA, ZRA, NAPSA, NHIMA, WCFCB, EIZ, and NCC. You will create internal SOPs and client checklists for your assigned desks.',
+    month2: 'You will independently manage a high volume of client applications with zero errors. You will build a tracking system to update clients on the progress of their applications, reducing the number of "status update" inquiries.',
+    month3: 'You will take full ownership of ongoing compliance for our retainer clients. You will identify opportunities to upsell additional administrative services to existing clients and train junior staff on your desk processes.',
+    compensation: [
+      "**Base Retainer:** You will receive a guaranteed monthly base retainer to ensure stability, the exact amount of which will be defined in your contract.",
+      "**Performance Commission:** You will earn a commission on the administrative services you process and advise on (based on the value of the service). The exact commission structure will be defined in a separate Commission Agreement.",
+      "**Upsell Bonus:** You will receive bonuses for successfully upgrading existing clients to higher-tier ongoing support packages.",
+      "**Growth Opportunity:** Exceptional performance in this role can lead to equity discussions as the company scales."
+    ],
+    resources: 'You will be provided with a company laptop, fast internet access, and access to all necessary PACRA, ZRA, and other government portals. You will receive direct support from the Founder.',
+    environment: 'You must be based in Lusaka, Zambia. You will work from our office or remotely, but you must be physically available to go to PACRA, ZRA, or other government offices to resolve issues or submit documents in person when required.',
+    terms: [
+      "**Employment/Contractor Status:** This Agreement does not create a standard employer-employee relationship unless specified in a separate contract. You are an independent contractor.",
+      "**Confidentiality:** You will have access to sensitive client information (TPINs, IDs, financials). You must never disclose this information.",
+      "**Client Handover:** All client communication and documents must be logged in our CRM. You cannot take client data with you if you leave.",
+      "**Termination:** This agreement requires 30 days written notice for termination from either party."
+    ]
+  },
+  investor: {
+    id: 'investor',
+    title: 'Co-Founder & Strategic Investor',
+    summary: 'You are the strategic powerhouse behind StartEasy Zambia. By joining as a Co-Founder and Strategic Investor, you are not just injecting capital, but also your network, expertise, and vision to help a female-led Zambian tech startup scale its impact and solve real business problems.',
+    reporting: 'You will work alongside the Founder and the Board to drive high-level strategy.',
+    responsibilities: [
+      "**Capital Injection:** Provide the necessary financial backing to scale operations, expand the team, and accelerate our go-to-market strategy.",
+      "**Strategic Mentorship:** Work closely with the Founder and executive team to refine the business model, pricing strategy, and long-term vision.",
+      "**Network & Partnerships:** Leverage your personal and professional network to open doors to key enterprise clients, government bodies, and venture-building partners like Basiwel Ventures.",
+      "**Board Participation:** Take an active role in quarterly board meetings to review financial performance, ensure accountability, and guide major company decisions.",
+      "**Risk Management:** Use your experience to identify potential roadblocks and help the team navigate the challenges of scaling a tech startup in Zambia."
+    ],
+    month1: 'You will finalize the investment terms and equity agreements. You will conduct a deep dive into our current financials and operational structure to identify immediate areas for capital allocation and efficiency.',
+    month2: 'You will leverage your network to facilitate at least 3 high-level introductions for strategic partnerships or enterprise sales. You will help the executive team refine the 12-month growth roadmap.',
+    month3: 'You will participate in your first official Board Meeting. You will review Q1 performance, approve the budget for the next quarter, and actively support the team in closing a major strategic deal.',
+    compensation: [
+      "**15% Equity Stake:** As outlined in our discussions, you will be granted a 15% equity stake in StartEasy Zambia. The exact vesting schedule and share structure will be defined in a separate, legally binding Shareholder Agreement.",
+      "**Dividends/ROI:** As a shareholder, you will be entitled to dividends and a return on your investment based on the company's profitability and future valuation, as determined by the Board.",
+      "**No Base Salary:** This is an investment and strategic partnership role, not an employment contract. Your financial return is tied to the growth and exit valuation of the company."
+    ],
+    resources: 'You will have full access to all company financials, board reports, and legal counsel. You will be supported by Basiwel Ventures for venture-building infrastructure.',
+    environment: 'You can operate remotely, but you must be available for quarterly board meetings and occasional in-person strategy sessions (Lusaka or regional).',
+    terms: [
+      "**Investment Agreement:** This portal agreement acts as an expression of intent. A formal Shareholder Agreement and Investment Contract will be executed separately.",
+      "**Fiduciary Duty:** You have a legal obligation to act in the best interest of StartEasy Zambia and its shareholders.",
+      "**Confidentiality:** You will have access to highly sensitive financial and strategic data. Strict confidentiality is required.",
+      "**Termination:** As an equity holder, your exit terms are governed by the separate Shareholder Agreement (e.g., drag-along, tag-along rights)."
+    ]
+  },
+  ceo: {
+    id: 'ceo',
+    title: 'Co-Founder & Chief Executive Officer',
+    summary: 'You are the visionary and operational leader of StartEasy Zambia. Your job is to drive the overall strategy, ensure all departments are aligned, and take ultimate responsibility for the company\'s growth, profitability, and culture. You will turn the Founder\'s vision into an executable reality.',
+    reporting: 'You will report directly to the Board of Directors and the Founder.',
+    responsibilities: [
+      "**Strategic Leadership:** You will set the company's long-term vision, short-term goals, and ensure the entire team is aligned and working towards the same milestones.",
+      "**Operational Oversight:** You will manage the executive team (Marketing, Finance, Growth) and ensure they have the resources and direction they need to succeed.",
+      "**Fundraising & Investor Relations:** You will lead the effort to secure funding and manage relationships with investors and key strategic partners.",
+      "**Culture & Talent:** You will be responsible for building and maintaining a high-performance, remote-first culture. You will lead the hiring of key roles as we scale.",
+      "**Performance & Profitability:** You will take ultimate responsibility for the company's Profit & Loss. You will review financial reports and adjust strategies to ensure sustainable growth."
+    ],
+    month1: 'You will conduct a deep dive into current operations, finalize the 12-month strategic roadmap, establish OKRs (Objectives and Key Results) for the leadership team, and set up weekly executive reporting.',
+    month2: 'You will lead the execution of the first major growth initiative. You will streamline internal communication and project management tools, and begin initial outreach for fundraising or strategic partnerships.',
+    month3: 'You will close a funding round or secure major strategic partnerships. You will review Q1 performance against OKRs, adjust the strategy where necessary, and present a comprehensive report to the Board.',
+    compensation: [
+      "**Equity Stake:** You will be granted a substantial ownership stake in StartEasy Zambia. The exact percentage, valuation, and vesting schedule will be strictly defined in a separate, legally binding Equity Agreement.",
+      "**Performance Bonus:** You will be eligible for performance bonuses tied to specific company revenue and profitability milestones. The exact financial figures and targets will be outlined in a separate Bonus Agreement.",
+      "**No Base Pay:** There is no fixed salary, hourly wage, or guaranteed monthly retainer. Your financial success is directly tied to the company's growth and your equity valuation."
+    ],
+    resources: 'You will have full access to company data, board advisors, and a budget for executive-level tools and travel. You will have direct access to the Founder for alignment.',
+    environment: 'You can work from anywhere in the world. You are not required to relocate. We ask that you attend one 30-minute video call with the Founder every Monday at 10:00 AM Central Africa Time (CAT).',
+    terms: [
+      "**No Employment Relationship:** This Agreement does not create an employer-employee relationship. You are an independent co-founder/contractor.",
+      "**Fiduciary Duty:** You have a legal obligation to act in the best financial interest of StartEasy Zambia at all times.",
+      "**Confidentiality:** You will have access to sensitive company data. You must never disclose this information.",
+      "**Termination:** This agreement requires 90 days written notice for termination from either party."
+    ]
+  },
   cdmo: {
     id: 'cdmo',
     title: 'Co-Founder & Chief Digital Marketing Officer',
@@ -204,6 +292,9 @@ const ROLES = {
 };
 
 const LIVE_CODES = {
+  'INV-ADM-3T7W': 'admin_advisor',
+  'INV-INV-5K9Z': 'investor',
+  'INV-CEO-9X2Y': 'ceo',
   'INV-CDM-7B3N': 'cdmo',
   'INV-DIR-2P8Q': 'director_finance',
   'INV-GRO-4M1X': 'growth_associate'
