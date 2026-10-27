@@ -442,13 +442,31 @@ function App() {
             if (snap.exists) break;
             await new Promise(r => setTimeout(r, 700));
           }
+          
           if (snap && snap.exists) {
             const data = snap.data();
             setUserData(data);
             setView('dashboard');
           } else {
-            setMissingProfile(true);
-            setView('recover-profile');
+            // 👇 AUTO-CREATE ADMIN PROFILE IF IT'S THE FOUNDER 👇
+            if (currentUser.email === 'lewismwaba@gmail.com') {
+               const adminProfile = {
+                  name: 'Mwaba Lewis',
+                  email: 'lewismwaba@gmail.com',
+                  phone: 'Admin',
+                  location: 'Lusaka, Zambia',
+                  roleId: 'founder',
+                  roleTitle: 'Founder & Admin',
+                  photoUrl: '',
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+               };
+               await db.collection('se_appointees').doc(currentUser.uid).set(adminProfile);
+               setUserData(adminProfile);
+               setView('dashboard');
+            } else {
+               setMissingProfile(true);
+               setView('recover-profile');
+            }
           }
         } catch (e) {
           setUser(null); setUserData(null);
@@ -631,8 +649,8 @@ function App() {
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim(),
         location: form.location.trim(),
-        roleId: selectedRole.id,
-        roleTitle: selectedRole.title,
+        roleId: selectedRole?.id || 'founder',
+        roleTitle: selectedRole?.title || 'Founder & Admin',
         photoUrl: '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
@@ -760,8 +778,7 @@ function App() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1F12' }}><i className="fas fa-circle-notch spin" style={{ fontSize: 32, color: '#E8730F' }}></i></div>;
   }
 
-  // 👇 CHANGE THIS LINE TO MATCH YOUR TEST EMAIL IF YOU AREN'T USING lewismwaba@gmail.com 👇
-  const isAdmin = userData?.email?.trim().toLowerCase() === 'lewismwaba@gmail.com';
+  const isAdmin = user?.email?.toLowerCase() === 'lewismwaba@gmail.com';
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -906,6 +923,12 @@ function App() {
                   Already onboarded?{' '}
                   <button onClick={() => { setView('login'); setAuthError(''); window.scrollTo(0,0); }} style={{ background: 'none', border: 'none', color: '#E8730F', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
                     Log in to your dashboard
+                  </button>
+                </div>
+                
+                <div style={{ textAlign: 'center', marginTop: 16, borderTop: '1px solid #eee', paddingTop: 16 }}>
+                   <button onClick={() => { setView('login'); setLoginEmail('lewismwaba@gmail.com'); window.scrollTo(0,0); }} style={{ background: 'none', border: 'none', color: '#1B6CA8', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: 12 }}>
+                    Admin Login (Founder)
                   </button>
                 </div>
               </div>
@@ -1202,12 +1225,13 @@ function App() {
           <div className="fadein main-container" style={{ minHeight: '100vh' }}>
             <div style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
               
-              {/* 👇 ADMIN BANNER 👇 */}
-              {isAdmin && (
-                <div style={{ background: '#E8730F', color: '#fff', padding: '12px 20px', borderRadius: 8, marginBottom: 20, textAlign: 'center', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <i className="fas fa-shield-alt"></i> Admin Mode Active: You can remove team members below.
-                </div>
-              )}
+              {/* 👇 DEBUG INFO - TO HELP YOU SEE WHAT IS HAPPENING 👇 */}
+              <div style={{ background: isAdmin ? '#E8F5E9' : '#FFEBEE', border: `1px solid ${isAdmin ? '#4CAF50' : '#F44336'}`, padding: '12px 20px', borderRadius: 8, marginBottom: 20 }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#333' }}>
+                  <strong>System Status:</strong> Logged in as <strong>{userData.email}</strong>.
+                  {isAdmin ? ' ✅ Admin privileges granted. You can remove members.' : ' ❌ Admin privileges DENIED. You must be logged in as lewismwaba@gmail.com to remove members.'}
+                </p>
+              </div>
 
               <div style={{ background: 'linear-gradient(135deg,#0A1F12,#123A1F)', padding: '40px', borderRadius: 16, textAlign: 'center', marginBottom: 32, color: '#fff' }}>
                 <h1 className="serif" style={{ fontSize: 32, margin: '0 0 12px' }}>Welcome to the Team, {userData.name.split(' ')[0]}!</h1>
