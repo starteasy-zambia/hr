@@ -96,11 +96,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--orange) !import
 <script type="text/babel" data-presets="react">
 const { useState, useEffect } = React;
 
-// ─── CLOUDINARY CONFIGURATION ──────────────────────
+// ─── CLOUDINARY CONFIGURATION (FIXED) ──────────────────────
 const CLOUDINARY_CONFIG = {
   cloudName: "dc21o9hz",
-  // 👇 YOU MUST PASTE YOUR UNSIGNED UPLOAD PRESET HERE FOR PHOTOS TO WORK 👇
-  uploadPreset: "YOUR_UNSIGNED_UPLOAD_PRESET_HERE" 
+  uploadPreset: "starteasy_unsigned" 
 };
 
 // ─── SHARED FIREBASE PROJECT ──────────────────────
@@ -487,10 +486,6 @@ function App() {
   const handleUpdatePhoto = async () => {
     if (!user || !photoFile) return;
     
-    if (CLOUDINARY_CONFIG.uploadPreset === "YOUR_UNSIGNED_UPLOAD_PRESET_HERE") {
-      return alert("Please configure your Cloudinary Upload Preset in the code first.");
-    }
-
     setPhotoSaving(true);
     try {
       // 1. Upload file to Cloudinary
@@ -528,10 +523,6 @@ function App() {
   const handleUploadResource = async (e) => {
     e.preventDefault();
     if (!resFile) return alert('Please select a file to upload.');
-    
-    if (CLOUDINARY_CONFIG.uploadPreset === "YOUR_UNSIGNED_UPLOAD_PRESET_HERE") {
-      return alert("Please configure your Cloudinary Upload Preset in the code first.");
-    }
 
     setUploadingRes(true);
     try {
