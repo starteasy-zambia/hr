@@ -65,11 +65,24 @@ input:focus, textarea:focus { outline: none; border-color: var(--orange) !import
 .doc-input-line { border-bottom: 1px dashed #999; padding: 0 4px; font-family: inherit; font-size:14px; color: var(--forest); background: #F9FBFA; border-top: none; border-left: none; border-right: none; width: 100%; margin-top: 4px; padding: 8px; transition: all 0.2s;}
 .doc-input-line:focus { background: #fff; border-bottom: 2px solid var(--orange); }
 
+/* --- BULLETPROOF PRINT CSS --- */
 @media print {
+  body { background: #fff !important; }
   body * { visibility: hidden; }
   .printable, .printable * { visibility: visible; }
-  .printable { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; box-shadow: none; border: none; }
-  .no-print { display: none !important; }
+  .printable { 
+    position: absolute; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    margin: 0 !important; 
+    padding: 20px !important; 
+    box-shadow: none !important; 
+    border: none !important; 
+  }
+  .main-container { display: block !important; padding: 0 !important; min-height: auto !important; }
+  .no-print, .site-header, footer { display: none !important; }
+  @page { margin: 1cm; }
 }
 
 @media (max-width: 600px) { .el { padding: 24px 20px; } .el .eh { flex-direction: column; gap: 12px; } .el .eh .dt, .el .eh .mt { text-align: left; } }
@@ -435,11 +448,11 @@ function App() {
     
     const unsubTeam = db.collection('se_appointees').onSnapshot(snap => {
       setTeamMembers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    }, (err) => console.warn("Team fetch error:", err.message));
 
     const unsubRes = db.collection('se_resources').onSnapshot(snap => {
       setResources(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    }, (err) => console.warn("Resource fetch error:", err.message));
 
     return () => { unsubTeam(); unsubRes(); };
   }, [userData]);
@@ -1095,6 +1108,8 @@ function App() {
                   </div>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                  
+                  {/* Current User */}
                   <div style={{ textAlign: 'center', padding: 20, border: '2px solid #E8730F', borderRadius: 12, background: '#FFF9E6', position: 'relative' }}>
                     <button onClick={() => setShowPhotoEdit(!showPhotoEdit)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }}><i className="fas fa-edit"></i></button>
                     <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
@@ -1106,6 +1121,7 @@ function App() {
                     <p style={{ fontSize: 12, color: '#E8730F', fontWeight: 700, textTransform: 'uppercase' }}>{userData.roleTitle}</p>
                   </div>
 
+                  {/* Hardcoded Founder (If current user is not Mwaba) */}
                   {userData.email !== 'lewismwaba@gmail.com' && (
                     <div style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
                       <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
@@ -1118,6 +1134,7 @@ function App() {
                     </div>
                   )}
 
+                  {/* Dynamic Team Members */}
                   {teamMembers.filter(m => m.id !== user.uid).map(member => (
                     <div key={member.id} style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
                       <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
@@ -1129,6 +1146,13 @@ function App() {
                       <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, textTransform: 'uppercase' }}>{member.roleTitle}</p>
                     </div>
                   ))}
+
+                  {/* Fallback if no other members exist */}
+                  {teamMembers.length === 0 && userData.email === 'lewismwaba@gmail.com' && (
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 20, color: 'rgba(10,31,18,0.5)', fontSize: 13, border: '1px dashed #ccc', borderRadius: 12 }}>
+                      Waiting for other team members to complete their onboarding...
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
