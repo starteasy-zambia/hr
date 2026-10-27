@@ -589,10 +589,7 @@ function App() {
   const handleRecoverProfile = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.phone.trim() || !form.location.trim()) return setError('Please fill in all fields.');
-    
-    // Force Admin role if email is the founder's
-    const isFounder = user.email.trim().toLowerCase() === 'lewismwaba@gmail.com';
-    const chosenRole = isFounder ? ROLES['ceo'] : ROLES[form.roleId || 'ceo'];
+    const chosenRole = ROLES['ceo']; 
 
     setBusy(true);
     try {
@@ -602,7 +599,7 @@ function App() {
         phone: form.phone.trim(),
         location: form.location.trim(),
         roleId: chosenRole.id,
-        roleTitle: isFounder ? 'Founder / Admin' : chosenRole.title,
+        roleTitle: chosenRole.title,
         photoUrl: '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
@@ -727,7 +724,7 @@ function App() {
     setView('gateway');
     setInviteCode('');
     setSelectedRole(null);
-    setForm({name:'', email:'', phone:'', location:'', roleId: ''});
+    setForm({name:'', email:'', phone:'', location:''});
     setAgreed(false);
     setError('');
     setCodeError('');
@@ -763,7 +760,8 @@ function App() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1F12' }}><i className="fas fa-circle-notch spin" style={{ fontSize: 32, color: '#E8730F' }}></i></div>;
   }
 
-  const isAdmin = userData?.email?.trim().toLowerCase() === 'lewismwaba@gmail.com';
+  // 👇 CHANGE THIS LINE TO MATCH YOUR TEST EMAIL IF YOU AREN'T USING lewismwaba@gmail.com 👇
+  const isAdmin = userData?.email === 'lewismwaba@gmail.com' || userData?.email === 'YOUR_TEST_EMAIL_HERE';
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -839,15 +837,6 @@ function App() {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Full Name</label>
                 <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Chanda Mwape" required style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} />
                 
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Role / Position</label>
-                <select value={form.roleId} onChange={e => setForm({...form, roleId: e.target.value})} required style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16, background: '#fff' }}>
-                  <option value="">Select your role...</option>
-                  {Object.values(ROLES).map(r => (
-                    <option key={r.id} value={r.id}>{r.title}</option>
-                  ))}
-                  <option value="ceo">Founder / Admin</option>
-                </select>
-
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Phone Number</label>
                 <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+260..." required style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} />
                 
@@ -956,7 +945,7 @@ function App() {
                   <PasswordField value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="Enter your password" autoComplete="current-password" />
                 </div>
 
-                {authError && <div style={{ color: '#B8564F', fontSize: 13, marginBottom: 16, fontWeight: 600, lineHeight: 1.5, background: '#FFE8E5', padding: 12, borderRadius: 8 }}>{authError}</div>}
+                {authError && <div style={{ color: '#B8564F', fontSize: 13, marginBottom: 16, fontWeight: 600, lineHeight: 1.5 }}>{authError}</div>}
 
                 <Btn type="submit" disabled={busy} size="lg" variant="dark" style={{ width: '100%', marginBottom: 16 }}>
                   {busy ? <><i className="fas fa-circle-notch spin"></i> Logging in…</> : 'Log In'}
@@ -1212,14 +1201,6 @@ function App() {
         {view === 'dashboard' && userData && (
           <div className="fadein main-container" style={{ minHeight: '100vh' }}>
             <div style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
-              
-              {/* 👇 ADMIN BANNER 👇 */}
-              {isAdmin && (
-                <div style={{ background: '#E8730F', color: '#fff', padding: '12px 20px', borderRadius: 8, marginBottom: 20, textAlign: 'center', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <i className="fas fa-shield-alt"></i> Admin Mode Active: You can remove team members below.
-                </div>
-              )}
-
               <div style={{ background: 'linear-gradient(135deg,#0A1F12,#123A1F)', padding: '40px', borderRadius: 16, textAlign: 'center', marginBottom: 32, color: '#fff' }}>
                 <h1 className="serif" style={{ fontSize: 32, margin: '0 0 12px' }}>Welcome to the Team, {userData.name.split(' ')[0]}!</h1>
                 <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }}>Role: <strong>{userData.roleTitle}</strong></p>
@@ -1383,48 +1364,61 @@ function App() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                   
-                  {/* ALL MEMBERS (NO HARDCODED CARDS) */}
-                  {teamMembers.map(member => {
-                    const isMe = member.id === user.uid;
-                    return (
-                      <div key={member.id} style={{ textAlign: 'center', padding: 20, border: isMe ? '2px solid #E8730F' : '1px solid #eee', borderRadius: 12, background: isMe ? '#FFF9E6' : '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
-                        
-                        {isMe && (
-                          <button onClick={() => setShowPhotoEdit(!showPhotoEdit)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }} title="Update Photo">
-                            <i className="fas fa-camera"></i>
-                          </button>
-                        )}
-
-                        <div>
-                          <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
-                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                              <img src={member.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0A1F12&color=fff&size=80`} onError={(e) => handleImageError(e, member.name)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </div>
-                          </div>
-                          <h4 style={{ fontSize: 16, fontWeight: 700 }}>{member.name} {isMe && "(You)"}</h4>
-                          <p style={{ fontSize: 12, color: isMe ? '#E8730F' : '#1E7B3C', fontWeight: 700, textTransform: 'uppercase' }}>{member.roleTitle}</p>
-                        </div>
-
-                        {/* SECURITY CHECK: Only render the delete button if the logged-in user is the Admin */}
-                        {isAdmin && !isMe && (
-                          <div style={{ marginTop: 16, borderTop: '1px solid #eee', paddingTop: 12 }}>
-                            <Btn 
-                              onClick={() => handleDeleteMember(member.id, member.name)} 
-                              variant="danger" 
-                              size="sm" 
-                              style={{ width: '100%' }}
-                            >
-                              <i className="fas fa-trash"></i> Remove Member
-                            </Btn>
-                          </div>
-                        )}
+                  {/* Current User */}
+                  <div style={{ textAlign: 'center', padding: 20, border: '2px solid #E8730F', borderRadius: 12, background: '#FFF9E6', position: 'relative' }}>
+                    <button onClick={() => setShowPhotoEdit(!showPhotoEdit)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }} title="Update Photo"><i className="fas fa-camera"></i></button>
+                    <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
+                        <img src={userData.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A1F12&color=fff&size=80`} onError={(e) => handleImageError(e, userData.name)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
-                    );
-                  })}
+                    </div>
+                    <h4 style={{ fontSize: 16, fontWeight: 700 }}>{userData.name} (You)</h4>
+                    <p style={{ fontSize: 12, color: '#E8730F', fontWeight: 700, textTransform: 'uppercase' }}>{userData.roleTitle}</p>
+                  </div>
 
-                  {teamMembers.length === 0 && (
+                  {/* Hardcoded Founder (If current user is not Mwaba) */}
+                  {userData.email !== 'lewismwaba@gmail.com' && (
+                    <div style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
+                      <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
+                        <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
+                          <img src="cropped-1713948169242.jpg" onError={(e) => handleImageError(e, 'Mwaba Lewis')} alt="Mwaba Lewis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      </div>
+                      <h4 style={{ fontSize: 16, fontWeight: 700 }}>Mwaba Lewis</h4>
+                      <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, textTransform: 'uppercase' }}>Founder</p>
+                    </div>
+                  )}
+
+                  {/* Dynamic Team Members */}
+                  {teamMembers.filter(m => m.id !== user.uid).map(member => (
+                    <div key={member.id} style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12, position: 'relative' }}>
+                      
+                      {/* 👇 SECURITY CHECK: Only render the delete button if the logged-in user is the Admin 👇 */}
+                      {isAdmin && (
+                        <button 
+                          onClick={() => handleDeleteMember(member.id, member.name)} 
+                          style={{ position: 'absolute', top: 10, right: 10, background: '#FFE8E5', border: 'none', color: '#B8564F', cursor: 'pointer', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                          title="Remove Member"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      )}
+                      {/* 👆 END SECURITY CHECK 👆 */}
+
+                      <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
+                        <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
+                          <img src={member.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0A1F12&color=fff&size=80`} onError={(e) => handleImageError(e, member.name)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      </div>
+                      <h4 style={{ fontSize: 16, fontWeight: 700 }}>{member.name}</h4>
+                      <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, textTransform: 'uppercase' }}>{member.roleTitle}</p>
+                    </div>
+                  ))}
+
+                  {/* Fallback if no other members exist */}
+                  {teamMembers.length === 0 && userData.email === 'lewismwaba@gmail.com' && (
                     <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 20, color: 'rgba(10,31,18,0.5)', fontSize: 13, border: '1px dashed #ccc', borderRadius: 12 }}>
-                      No team members found. (If you just deleted them, log out and log back in to refresh your view).
+                      Waiting for other team members to complete their onboarding...
                     </div>
                   )}
                 </div>
