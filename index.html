@@ -1145,7 +1145,7 @@ function App() {
           </div>
         )}
 
-        {/* ─── CONTRACT SIGNED ─── */}
+                {/* ─── CONTRACT SIGNED ─── */}
         {view === 'contract-signed' && selectedRole && (
           <div className="fadein main-container">
             <div className="no-print" style={{ maxWidth: 850, width: '100%', background: '#fff', padding: 40, borderRadius: 16, marginBottom: 24 }}>
@@ -1162,6 +1162,38 @@ function App() {
                 <Btn onClick={() => { setView('create-account'); window.scrollTo(0,0); }} size="lg" variant="primary" style={{ width: '100%', maxWidth: 400 }}>3. Proceed to Create Account <i className="fas fa-arrow-right"></i></Btn>
               </div>
             </div>
+
+            {/* 👇 THIS IS THE FIX: Added the printable contract block here 👇 */}
+            <div className="el printable" style={{ marginTop: 24 }}>
+              <div className="eh">
+                <div><div className="brand">Start<em>Easy Zambia</em></div><div className="sub">Founding Team Engagement</div></div>
+                <div><div className="dt">AGREEMENT OF ENGAGEMENT</div><div className="mt">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div></div>
+              </div>
+              <p>This Agreement of Engagement is entered into by StartEasy Zambia and <strong>{form.name || '[Applicant Name]'}</strong>.</p>
+              <h4>1. Position</h4>
+              <p>The Company hereby appoints the Appointee to the position of <strong>{selectedRole.title}</strong>. {selectedRole.reporting}</p>
+              <h4>2. Compensation</h4>
+              <ul>{selectedRole.compensation.map((item, i) => <li key={i} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}</ul>
+              <h4>3. Appointee Details</h4>
+              <div className="form-grid-2">
+                <span><strong>Name:</strong><br/><input className="doc-input-line" value={form.name} readOnly /></span>
+                <span><strong>Email:</strong><br/><input className="doc-input-line" type="email" value={form.email} readOnly /></span>
+                <span><strong>Phone:</strong><br/><input className="doc-input-line" value={form.phone} readOnly /></span>
+                <span><strong>Location:</strong><br/><input className="doc-input-line" value={form.location} readOnly /></span>
+              </div>
+              <h4>4. Acceptance</h4>
+              <div className="highlight-box">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <i className="fas fa-check-square" style={{ color: '#E8730F', fontSize: 20 }}></i>
+                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>I accept the terms of this agreement.</span>
+                </div>
+              </div>
+              <div className="sign">
+                <div><div className="sigval" style={{ color: '#1B6CA8' }}>Mwaba Lewis</div><div className="lbl">For StartEasy</div></div>
+                <div><div className="sigval" style={{ color: '#E8730F' }}>{form.name || '_________________________'}</div><div className="lbl">For the Agent</div></div>
+              </div>
+            </div>
+            {/* 👆 END OF FIX 👆 */}
           </div>
         )}
 
