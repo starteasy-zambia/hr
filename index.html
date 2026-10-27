@@ -7,6 +7,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<!-- html2pdf Library for direct download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -64,26 +66,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--orange) !import
 .el .sign .lbl{font-size:11px;color:#666;font-weight:600; text-transform:uppercase; letter-spacing:0.05em;}
 .doc-input-line { border-bottom: 1px dashed #999; padding: 0 4px; font-family: inherit; font-size:14px; color: var(--forest); background: #F9FBFA; border-top: none; border-left: none; border-right: none; width: 100%; margin-top: 4px; padding: 8px; transition: all 0.2s;}
 .doc-input-line:focus { background: #fff; border-bottom: 2px solid var(--orange); }
-
-/* --- BULLETPROOF PRINT CSS --- */
-@media print {
-  body { background: #fff !important; }
-  body * { visibility: hidden; }
-  .printable, .printable * { visibility: visible; }
-  .printable { 
-    position: absolute; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    margin: 0 !important; 
-    padding: 20px !important; 
-    box-shadow: none !important; 
-    border: none !important; 
-  }
-  .main-container { display: block !important; padding: 0 !important; min-height: auto !important; }
-  .no-print, .site-header, footer { display: none !important; }
-  @page { margin: 1cm; }
-}
 
 @media (max-width: 600px) { .el { padding: 24px 20px; } .el .eh { flex-direction: column; gap: 12px; } .el .eh .dt, .el .eh .mt { text-align: left; } }
 </style>
@@ -391,6 +373,7 @@ function App() {
   const [error, setError] = useState('');
   const [itRequest, setItRequest] = useState('');
   const [itRequestSent, setItRequestSent] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Auth state
   const [user, setUser] = useState(null);
@@ -742,6 +725,7 @@ function App() {
     setPhotoFile(null);
     setPhotoPreview('');
     setMissingProfile(false);
+    setIsDownloading(false);
     window.scrollTo(0, 0);
   };
 
@@ -752,6 +736,33 @@ function App() {
     setTimeout(() => { setItRequest(''); setItRequestSent(false); }, 4000);
   };
 
+  // --- PDF GENERATION LOGIC ---
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('contract-to-pdf');
+    if (!element) return;
+
+    setIsDownloading(true);
+
+    // Wait a tiny bit for any rendering to settle
+    setTimeout(() => {
+      const opt = {
+        margin:       0.5,
+        filename:     `StartEasy_Agreement_${form.name.trim().replace(/\s+/g, '_') || 'Applicant'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        setIsDownloading(false);
+      }).catch((err) => {
+        console.error("PDF Generation failed:", err);
+        alert("There was an error generating the PDF. Please try again.");
+        setIsDownloading(false);
+      });
+    }, 100);
+  };
+
   const hrEmailSubject = encodeURIComponent(`Signed Agreement - ${form.name} (${selectedRole?.title})`);
   const hrEmailBody = encodeURIComponent(`Hello StartEasy HR,\n\nI have signed my engagement agreement for the ${selectedRole?.title} role.\n\nDetails:\nName: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nLocation: ${form.location}\n\nPlease find my signed agreement attached for your records.\n\nRegards,\n${form.name}`);
   const hrWhatsAppMsg = encodeURIComponent(`Hello StartEasy HR,\n\nI have signed my engagement agreement for the *${selectedRole?.title}* role.\n\nName: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nLocation: ${form.location}\n\nI am sending my signed PDF document next.`);
@@ -760,7 +771,6 @@ function App() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1F12' }}><i className="fas fa-circle-notch spin" style={{ fontSize: 32, color: '#E8730F' }}></i></div>;
   }
 
-  // 👇 CHANGE THIS LINE TO MATCH YOUR TEST EMAIL IF YOU AREN'T USING lewismwaba@gmail.com 👇
   const isAdmin = userData?.email === 'lewismwaba@gmail.com' || userData?.email === 'YOUR_TEST_EMAIL_HERE';
 
   return (
@@ -1145,7 +1155,7 @@ function App() {
           </div>
         )}
 
-                {/* ─── CONTRACT SIGNED ─── */}
+        {/* ─── CONTRACT SIGNED ─── */}
         {view === 'contract-signed' && selectedRole && (
           <div className="fadein main-container">
             <div className="no-print" style={{ maxWidth: 850, width: '100%', background: '#fff', padding: 40, borderRadius: 16, marginBottom: 24 }}>
@@ -1154,7 +1164,12 @@ function App() {
                 <p style={{ fontSize: 15, color: 'rgba(10,31,18,0.7)' }}>Please download, sign, and send a copy to HR before proceeding.</p>
               </div>
               <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: 24 }}>
-                <Btn onClick={() => window.print()} size="lg" variant="dark"><i className="fas fa-print"></i> 1. Print / Save PDF</Btn>
+                
+                {/* DOWNLOAD BUTTON INSTEAD OF PRINT */}
+                <Btn onClick={handleDownloadPDF} disabled={isDownloading} size="lg" variant="dark">
+                  {isDownloading ? <><i className="fas fa-circle-notch spin"></i> Generating PDF...</> : <><i className="fas fa-download"></i> 1. Download PDF</>}
+                </Btn>
+
                 <a href={`https://wa.me/260762499581?text=${hrWhatsAppMsg}`} target="_blank" rel="noopener noreferrer"><Btn size="lg" variant="success" style={{ width: '100%' }}><i className="fab fa-whatsapp"></i> 2. Send via WhatsApp</Btn></a>
                 <a href={`mailto:hr@starteasyzambia.com?subject=${hrEmailSubject}&body=${hrEmailBody}`}><Btn size="lg" variant="ghost" style={{ width: '100%' }}><i className="fas fa-envelope"></i> 2. Send via Email</Btn></a>
               </div>
@@ -1163,8 +1178,8 @@ function App() {
               </div>
             </div>
 
-            {/* 👇 THIS IS THE FIX: Added the printable contract block here 👇 */}
-            <div className="el printable" style={{ marginTop: 24 }}>
+            {/* THE PDF CAPTURE AREA */}
+            <div id="contract-to-pdf" className="el printable" style={{ marginTop: 24 }}>
               <div className="eh">
                 <div><div className="brand">Start<em>Easy Zambia</em></div><div className="sub">Founding Team Engagement</div></div>
                 <div><div className="dt">AGREEMENT OF ENGAGEMENT</div><div className="mt">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div></div>
@@ -1193,7 +1208,6 @@ function App() {
                 <div><div className="sigval" style={{ color: '#E8730F' }}>{form.name || '_________________________'}</div><div className="lbl">For the Agent</div></div>
               </div>
             </div>
-            {/* 👆 END OF FIX 👆 */}
           </div>
         )}
 
