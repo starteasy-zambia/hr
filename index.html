@@ -86,11 +86,10 @@ const { useState, useEffect } = React;
 // ─── CLOUDINARY CONFIGURATION ──────────────────────
 const CLOUDINARY_CONFIG = {
   cloudName: "dc21o9hz",
-  // PASTE YOUR UNSIGNED UPLOAD PRESET HERE:
   uploadPreset: "YOUR_UNSIGNED_UPLOAD_PRESET_HERE" 
 };
 
-// ─── SHARED FIREBASE PROJECT (same as agent portal) ──────────────────────
+// ─── SHARED FIREBASE PROJECT ──────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyDdEyxvsd2RjgKVYTGYJfYUB_637lV3n5I",
   authDomain: "starteasy-zambia.firebaseapp.com",
@@ -106,7 +105,6 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Bold-markdown helper
 const fmt = (s = '') => String(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
 // ─── ROLES ──────────────────────────────────────────────────────────────
@@ -307,7 +305,6 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, st
   return <button type={type} onClick={onClick} disabled={disabled} style={{ ...base, ...sizes[size], ...variants[variant], ...style }}>{children}</button>;
 };
 
-// Reusable password field with eye toggle
 const PasswordField = ({ value, onChange, placeholder, autoComplete }) => {
   const [show, setShow] = useState(false);
   return (
@@ -325,7 +322,6 @@ const PasswordField = ({ value, onChange, placeholder, autoComplete }) => {
         type="button"
         onClick={() => setShow(s => !s)}
         tabIndex={-1}
-        aria-label={show ? 'Hide password' : 'Show password'}
         style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(10,31,18,.5)', fontSize: 16, padding: 4 }}
       >
         <i className={`fas ${show ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -334,28 +330,15 @@ const PasswordField = ({ value, onChange, placeholder, autoComplete }) => {
   );
 };
 
-// Human-friendly Firebase error messages
 function firebaseErrorMsg(err, context = 'auth') {
   const code = err && err.code;
-  if (code === 'permission-denied') {
-    return "Database Permission Denied! Your Firebase Security Rules are blocking access. Please ensure 'allow list: if isRealUser();' is set for the se_appointees collection.";
-  }
-  if (code === 'auth/email-already-in-use')
-    return "This email is already registered in our system. If you already have an account (perhaps from another StartEasy portal), please log in instead.";
-  if (code === 'auth/invalid-email')
-    return "That email address doesn't look valid. Please double-check it.";
-  if (code === 'auth/weak-password')
-    return "Your password is too weak. Please use at least 6 characters.";
+  if (code === 'permission-denied') return "Database Permission Denied! Your Firebase Security Rules are blocking access.";
+  if (code === 'auth/email-already-in-use') return "This email is already registered. Please log in instead.";
+  if (code === 'auth/invalid-email') return "That email address doesn't look valid.";
+  if (code === 'auth/weak-password') return "Your password is too weak. Please use at least 6 characters.";
   if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential')
-    return context === 'login'
-      ? "Incorrect email or password. If you haven't created an account yet, please sign the agreement first."
-      : "We couldn't find an account with that email.";
-  if (code === 'auth/too-many-requests')
-    return "Too many attempts. Please wait a few minutes and try again.";
-  if (code === 'auth/network-request-failed')
-    return "Network error. Please check your internet connection.";
-  if (code === 'auth/operation-not-allowed')
-    return "Email/Password sign-in is not enabled in Firebase Console. Please contact StartEasy Admin.";
+    return context === 'login' ? "Incorrect email or password." : "We couldn't find an account with that email.";
+  if (code === 'auth/too-many-requests') return "Too many attempts. Please wait a few minutes and try again.";
   return (err && err.message) || "Something went wrong. Please try again.";
 }
 
@@ -377,11 +360,11 @@ function App() {
   // Auth state
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [teamMembers, setTeamMembers] = useState([]); // Dynamic Team
-  const [resources, setResources] = useState([]); // Dynamic Resources
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [resources, setResources] = useState([]);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Profile Image State
+  // Profile Edit State
   const [photoUrlInput, setPhotoUrlInput] = useState('');
   const [showPhotoEdit, setShowPhotoEdit] = useState(false);
   const [photoSaving, setPhotoSaving] = useState(false);
@@ -401,15 +384,14 @@ function App() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
 
-  // Listen to Firebase Auth state
+  // Listen to Auth
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       if (currentUser) {
         if (currentUser.isAnonymous) {
           await auth.signOut();
-          setUser(null);
-          setUserData(null);
-          setAuthError("Session conflict: Please log in with your email and password. (Agent portal anonymous session detected).");
+          setUser(null); setUserData(null);
+          setAuthError("Session conflict: Please log in with your email and password.");
           setAuthLoading(false);
           return;
         }
@@ -428,27 +410,18 @@ function App() {
             setPhotoUrlInput(data.photoUrl || '');
             setView('dashboard');
           } else {
-            setUser(null);
-            setUserData(null);
+            setUser(null); setUserData(null);
             setView('login');
-            setAuthError("This email is registered, but we couldn't find a Founding Team profile for it. If you are a Referral Agent, please use the Agent Portal. Otherwise, contact HR.");
+            setAuthError("This email is registered, but we couldn't find a Founding Team profile for it.");
             auth.signOut();
           }
         } catch (e) {
-          console.error("Firestore Error:", e.code, e.message);
-          setUser(null);
-          setUserData(null);
-          
-          if (e.code === 'permission-denied') {
-            setAuthError("Database Permission Denied. Please ensure the Firestore security rules allow 'list' access to the 'se_appointees' collection. Contact StartEasy Admin.");
-          } else {
-            setAuthError("Failed to load profile: " + e.message);
-          }
+          setUser(null); setUserData(null);
+          setAuthError(e.code === 'permission-denied' ? "Database Permission Denied. Check rules." : "Failed to load profile: " + e.message);
           auth.signOut();
         }
       } else {
-        setUser(null);
-        setUserData(null);
+        setUser(null); setUserData(null);
       }
       setBusy(false);
       setAuthLoading(false);
@@ -456,35 +429,27 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch Dynamic Team Members and Resources
+  // Fetch Team Members & Resources
   useEffect(() => {
     if (!userData) return;
     
-    const unsubTeam = db.collection('se_appointees').onSnapshot(snapshot => {
-      const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTeamMembers(members);
-    }, (error) => {
-      console.warn("Could not fetch team members list:", error.message);
+    const unsubTeam = db.collection('se_appointees').onSnapshot(snap => {
+      setTeamMembers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
-    const unsubRes = db.collection('se_resources').onSnapshot(snapshot => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setResources(docs);
-    }, (error) => {
-      console.warn("Could not fetch resources:", error.message);
+    const unsubRes = db.collection('se_resources').onSnapshot(snap => {
+      setResources(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
     return () => { unsubTeam(); unsubRes(); };
   }, [userData]);
 
-  // Update Profile Picture
+  // Handle Photo Upload
   const handleUpdatePhoto = async () => {
     if (!user) return;
     setPhotoSaving(true);
     try {
-      await db.collection('se_appointees').doc(user.uid).update({
-        photoUrl: photoUrlInput.trim()
-      });
+      await db.collection('se_appointees').doc(user.uid).update({ photoUrl: photoUrlInput.trim() });
       setUserData(prev => ({ ...prev, photoUrl: photoUrlInput.trim() }));
       setShowPhotoEdit(false);
     } catch (e) {
@@ -505,7 +470,6 @@ function App() {
 
     setUploadingRes(true);
     try {
-      // 1. Upload to Cloudinary
       const formData = new FormData();
       formData.append('file', resFile);
       formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
@@ -518,7 +482,6 @@ function App() {
       const data = await response.json();
 
       if (data.secure_url) {
-        // 2. Save to Firestore
         await db.collection('se_resources').add({
           title: resTitle,
           desc: resDesc,
@@ -551,7 +514,7 @@ function App() {
     }
   };
 
-  // ─── AUTH: create account ───────
+  // ─── AUTH: create account (WITH GHOST CLEANUP) ───────
   const handleCreateAccount = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -559,8 +522,12 @@ function App() {
     if (authPassword !== authConfirmPassword) return setAuthError('Passwords do not match.');
 
     setBusy(true);
+    let cred = null;
     try {
-      const cred = await auth.createUserWithEmailAndPassword(form.email.trim().toLowerCase(), authPassword);
+      // 1. Create Auth User
+      cred = await auth.createUserWithEmailAndPassword(form.email.trim().toLowerCase(), authPassword);
+      
+      // 2. Save Appointee Data to Firestore
       const profile = {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
@@ -572,12 +539,17 @@ function App() {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('se_appointees').doc(cred.user.uid).set(profile);
+      
       setUserData(profile);
       setView('dashboard');
       window.scrollTo(0, 0);
     } catch (err) {
       console.error(err);
-      setAuthError(firebaseErrorMsg(err, 'signup'));
+      // 3. CLEANUP: If Firestore failed, delete the Auth user so it doesn't become a ghost!
+      if (cred && cred.user) {
+        try { await cred.user.delete(); } catch (delErr) { console.error("Cleanup failed:", delErr); }
+      }
+      setAuthError(firebaseErrorMsg(err, 'signup') + " (We rolled back the login attempt to keep our database clean).");
     } finally {
       setBusy(false);
     }
@@ -620,8 +592,8 @@ function App() {
     resetPortal();
   };
 
-  // Navigation
-  const validateCode = () => {
+  // ─── INVITE CODE TRACKING ───────
+  const validateCode = async () => {
     setCodeError('');
     const codeUpper = inviteCode.trim().toUpperCase();
     if (LIVE_CODES[codeUpper]) {
@@ -629,6 +601,15 @@ function App() {
       setView('brief');
       window.scrollTo(0, 0);
       setIsMenuOpen(false);
+
+      // Log the click in the background
+      try {
+        await db.collection('se_invite_logs').add({
+          code: codeUpper,
+          roleTitle: ROLES[LIVE_CODES[codeUpper]].title,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) { console.warn("Log failed", e); }
     } else {
       setCodeError('Invalid or expired invitation code. Please contact StartEasy Zambia Admin.');
     }
@@ -636,12 +617,8 @@ function App() {
 
   const signAgreement = () => {
     setError('');
-    if (!form.name.trim()) return setError('Please type your full legal name to sign.');
-    if (!form.email.trim() || !/^\S+@\S+\.\S+$/.test(form.email)) return setError('Please enter a valid email address.');
-    if (!form.phone.trim()) return setError('Please enter a valid phone number.');
-    if (!form.location.trim()) return setError('Please enter your current city/location.');
-    if (!agreed) return setError('You must check the acceptance box to execute this agreement.');
-
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.location.trim()) return setError('Please fill out all fields.');
+    if (!agreed) return setError('You must check the acceptance box.');
     setBusy(true);
     setTimeout(() => {
       setBusy(false);
@@ -676,10 +653,7 @@ function App() {
     e.preventDefault();
     if(!itRequest.trim()) return;
     setItRequestSent(true);
-    setTimeout(() => {
-      setItRequest('');
-      setItRequestSent(false);
-    }, 4000);
+    setTimeout(() => { setItRequest(''); setItRequestSent(false); }, 4000);
   };
 
   const hrEmailSubject = encodeURIComponent(`Signed Agreement - ${form.name} (${selectedRole?.title})`);
@@ -764,20 +738,6 @@ function App() {
             </section>
 
             <section style={{ padding: '60px 24px', maxWidth: 1000, margin: '0 auto', width: '100%' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24, marginBottom: 60 }}>
-                {[
-                  { n: '1', t: 'Verify Code', d: 'Enter the unique invitation code sent to your email.' },
-                  { n: '2', t: 'Review Brief', d: 'Read the detailed role description and exact compensation structure.' },
-                  { n: '3', t: 'Sign & Onboard', d: 'Execute the agreement, create your account, and unlock your workspace.' },
-                ].map((x, i) => (
-                  <div key={i} style={{ textAlign: 'center' }}>
-                    <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#fff', border: '2px solid #E8730F', color: '#E8730F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px', fontWeight: 800 }}>{x.n}</div>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: '#0A1F12' }}>{x.t}</h3>
-                    <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)', lineHeight: 1.6 }}>{x.d}</p>
-                  </div>
-                ))}
-              </div>
-
               <div style={{ maxWidth: 450, margin: '0 auto', background: '#fff', padding: 40, borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.08)', border: '1px solid rgba(10,31,18,.08)' }}>
                 <h2 className="serif" style={{ fontSize: 24, color: '#0A1F12', margin: '0 0 8px', textAlign: 'center' }}>Secure Access</h2>
                 <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)', margin: '0 0 24px', textAlign: 'center' }}>Enter your invitation code to proceed.</p>
@@ -836,12 +796,7 @@ function App() {
                   </button>
                 </div>
                 <div style={{ marginBottom: 16 }}>
-                  <PasswordField
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                  />
+                  <PasswordField value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="Enter your password" autoComplete="current-password" />
                 </div>
 
                 {authError && <div style={{ color: '#B8564F', fontSize: 13, marginBottom: 16, fontWeight: 600, lineHeight: 1.5 }}>{authError}</div>}
@@ -878,7 +833,7 @@ function App() {
                   <div style={{ background: '#EAF7EE', color: '#1E7B3C', padding: 20, borderRadius: 8, textAlign: 'center', marginBottom: 16 }}>
                     <i className="fas fa-check-circle" style={{ fontSize: 24, marginBottom: 8, display: 'block' }}></i>
                     <p style={{ margin: 0, fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>
-                      A password reset link has been sent to <strong>{resetEmail}</strong>. Please check your inbox (and spam folder).
+                      A password reset link has been sent to <strong>{resetEmail}</strong>. Please check your inbox.
                     </p>
                   </div>
                   <Btn onClick={() => { setView('login'); setResetSent(false); setAuthError(''); }} variant="ghost" style={{ width: '100%' }}>
@@ -954,7 +909,6 @@ function App() {
         {view === 'brief' && selectedRole && (
           <div className="fadein main-container">
             <div style={{ maxWidth: 850, margin: '0 auto', background: '#fff', padding: '40px 50px', borderRadius: 16, border: '1px solid rgba(10,31,18,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
-
               <div style={{ borderBottom: '2px solid #eee', paddingBottom: 24, marginBottom: 24 }}>
                 <h1 className="serif" style={{ fontSize: 36, color: '#0A1F12', margin: '0 0 16px' }}>{selectedRole.title}</h1>
                 <p style={{ fontSize: 16, color: 'rgba(10,31,18,0.7)', margin: 0, lineHeight: 1.7 }}>{selectedRole.summary}</p>
@@ -968,7 +922,6 @@ function App() {
                     {selectedRole.responsibilities.map((item, i) => <li key={i} style={{ marginBottom: 10 }} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}
                   </ul>
                 </div>
-
                 <div>
                   <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0A1F12', marginBottom: 16 }}><i className="fas fa-calendar-alt" style={{ color: '#E8730F', marginRight: 8 }}></i> Your First 90 Days (Milestones)</h4>
                   <div style={{ background: '#F9FBFA', padding: 16, borderRadius: 8 }}>
@@ -977,13 +930,11 @@ function App() {
                     <p style={{ fontSize: 14.5, color: 'rgba(10,31,18,0.8)', marginBottom: 0, lineHeight: 1.7 }}><strong>Month 3:</strong> {selectedRole.month3}</p>
                   </div>
                 </div>
-
                 <div>
                   <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0A1F12', marginBottom: 16 }}><i className="fas fa-wallet" style={{ color: '#1E7B3C', marginRight: 8 }}></i> Exact Compensation Structure</h4>
                   <ul style={{ fontSize: 14.5, color: 'rgba(10,31,18,0.8)', marginBottom: 24, lineHeight: 1.7, background: '#F9FBFA', padding: '16px 16px 16px 36px', borderRadius: 8 }}>
                     {selectedRole.compensation.map((item, i) => <li key={i} style={{ marginBottom: 10 }} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}
                   </ul>
-
                   <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0A1F12', marginBottom: 16 }}><i className="fas fa-tools" style={{ color: '#1B6CA8', marginRight: 8 }}></i> Resources & Environment</h4>
                   <p style={{ fontSize: 14.5, color: 'rgba(10,31,18,0.8)', marginBottom: 12, lineHeight: 1.7 }}>{selectedRole.resources}</p>
                   <p style={{ fontSize: 14.5, color: 'rgba(10,31,18,0.8)', margin: 0, lineHeight: 1.7 }}>{selectedRole.environment}</p>
@@ -1000,313 +951,81 @@ function App() {
           </div>
         )}
 
-        {/* ─── CONTRACT (EDITABLE) ─── */}
+        {/* ─── CONTRACT ─── */}
         {view === 'contract' && selectedRole && (
           <div className="fadein main-container">
             <div className="el printable">
               <div className="eh">
-                <div>
-                  <div className="brand">Start<em>Easy Zambia</em></div>
-                  <div className="sub">Founding Team Engagement</div>
-                </div>
-                <div>
-                  <div className="dt">AGREEMENT OF ENGAGEMENT</div>
-                  <div className="mt">
-                    {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </div>
-                </div>
+                <div><div className="brand">Start<em>Easy Zambia</em></div><div className="sub">Founding Team Engagement</div></div>
+                <div><div className="dt">AGREEMENT OF ENGAGEMENT</div><div className="mt">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div></div>
               </div>
-
-              <p>
-                This Agreement of Engagement is entered into by StartEasy Zambia (the "Company") and <strong>{form.name.trim() ? form.name.trim() : '[Applicant Full Legal Name]'}</strong> (the "Appointee"). By digitally signing this document, the Appointee formally accepts the appointment, terms, and responsibilities outlined herein.
-              </p>
-
-              <h4>1. Appointment & Position</h4>
+              <p>This Agreement of Engagement is entered into by StartEasy Zambia and <strong>{form.name || '[Applicant Name]'}</strong>.</p>
+              <h4>1. Position</h4>
               <p>The Company hereby appoints the Appointee to the position of <strong>{selectedRole.title}</strong>. {selectedRole.reporting}</p>
-
-              <h4>2. Role Summary</h4>
-              <p>{selectedRole.summary}</p>
-
-              <h4>3. Specific Duties & Responsibilities</h4>
-              <p>The Appointee agrees to perform the following specific duties:</p>
-              <ul>
-                {selectedRole.responsibilities.map((item, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}
-              </ul>
-
-              <h4>4. Performance Milestones (First 90 Days)</h4>
-              <p>The Appointee agrees to execute and deliver on the following initial milestones:</p>
-              <ul>
-                <li><strong>Month 1:</strong> {selectedRole.month1}</li>
-                <li><strong>Month 2:</strong> {selectedRole.month2}</li>
-                <li><strong>Month 3:</strong> {selectedRole.month3}</li>
-              </ul>
-
-              <h4>5. Remuneration & Compensation</h4>
-              <p>The Appointee's compensation for services rendered is structured strictly as follows:</p>
-              <ul>
-                {selectedRole.compensation.map((item, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}
-              </ul>
-
-              <h4>6. Resources, Work Environment & Terms</h4>
-              <p><strong>Allocated Resources:</strong> {selectedRole.resources}</p>
-              <p><strong>Work Environment:</strong> {selectedRole.environment}</p>
-              <p><strong>Binding Terms:</strong></p>
-              <ul>
-                {selectedRole.terms.map((term, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: fmt(term)}} />)}
-                <li><strong>Confidentiality:</strong> You must keep all of our business plans, client information, and strategies completely confidential.</li>
-              </ul>
-
-              <h4>7. Appointee Details (For Execution)</h4>
+              <h4>2. Compensation</h4>
+              <ul>{selectedRole.compensation.map((item, i) => <li key={i} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}</ul>
+              <h4>3. Appointee Details</h4>
               <div className="form-grid-2">
-                <span>
-                  <strong>Full Legal Name:</strong><br/>
-                  <input className="doc-input-line" placeholder="Enter full legal name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-                </span>
-                <span>
-                  <strong>Email Address:</strong><br/>
-                  <input className="doc-input-line" type="email" placeholder="Enter email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-                </span>
-                <span>
-                  <strong>Phone / WhatsApp:</strong><br/>
-                  <input className="doc-input-line" placeholder="Enter phone number" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-                </span>
-                <span>
-                  <strong>Current Location (City/Country):</strong><br/>
-                  <input className="doc-input-line" placeholder="e.g. Lusaka, Zambia" value={form.location} onChange={e => setForm({...form, location: e.target.value})} />
-                </span>
+                <span><strong>Name:</strong><br/><input className="doc-input-line" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></span>
+                <span><strong>Email:</strong><br/><input className="doc-input-line" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></span>
+                <span><strong>Phone:</strong><br/><input className="doc-input-line" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></span>
+                <span><strong>Location:</strong><br/><input className="doc-input-line" value={form.location} onChange={e => setForm({...form, location: e.target.value})} /></span>
               </div>
-
-              <h4>8. Declaration & Acceptance</h4>
+              <h4>4. Acceptance</h4>
               <div className="highlight-box">
                 <label style={{ display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#E8730F', flexShrink: 0 }} />
-                  <span style={{ fontSize: 13.5, lineHeight: 1.6, color: '#0A1F12', fontWeight: 600 }}>
-                    I, the undersigned Appointee, hereby declare that I have read, understood, and voluntarily accept the terms, compensation structure, and 90-day priorities outlined in this Agreement of Engagement. I acknowledge that this is an Entrepreneurship/Intrapreneurship opportunity and not a standard employment contract.
-                  </span>
+                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#E8730F' }} />
+                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>I accept the terms of this agreement.</span>
                 </label>
               </div>
-
               <div className="sign">
-                <div>
-                  <div className="sigval" style={{ color: '#1B6CA8' }}>Mwaba Lewis</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0A1F12', marginBottom: 4 }}>MWABA LEWIS</div>
-                  <div className="lbl">Founder, StartEasy Zambia</div>
-                </div>
-                <div>
-                  <div className="sigval" style={{ color: '#E8730F' }}>
-                    {form.name.trim() || '_________________________'}
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0A1F12', marginBottom: 4 }}>
-                    {form.name.trim() || '[Applicant Name]'}
-                  </div>
-                  <div className="lbl">Appointee</div>
-                </div>
+                <div><div className="sigval" style={{ color: '#1B6CA8' }}>Mwaba Lewis</div><div className="lbl">For StartEasy</div></div>
+                <div><div className="sigval" style={{ color: '#E8730F' }}>{form.name || '_________________________'}</div><div className="lbl">For the Agent</div></div>
               </div>
-
               {error && <div style={{ background: '#FFE8E5', color: '#B8564F', padding: 12, borderRadius: 6, marginTop: 20, fontSize: 13, fontWeight: 600 }}>{error}</div>}
-
-              <div className="no-print" style={{ width: '100%' }}>
-                <Btn onClick={signAgreement} disabled={busy} size="lg" variant="primary" style={{ width: '100%', marginTop: 24 }}>
-                  {busy ? <><i className="fas fa-circle-notch spin"></i> Processing…</> : 'Execute Agreement & Finalize'}
-                </Btn>
-              </div>
+              <div className="no-print"><Btn onClick={signAgreement} disabled={busy} size="lg" variant="primary" style={{ width: '100%', marginTop: 24 }}>{busy ? 'Processing...' : 'Execute Agreement'}</Btn></div>
             </div>
           </div>
         )}
 
-        {/* ─── CONTRACT SIGNED (SEND TO HR STEP) ─── */}
+        {/* ─── CONTRACT SIGNED ─── */}
         {view === 'contract-signed' && selectedRole && (
           <div className="fadein main-container">
-            
-            {/* Action Box */}
-            <div className="no-print" style={{ maxWidth: 850, width: '100%', background: '#fff', padding: 40, borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.08)', border: '1px solid rgba(10,31,18,.08)', marginBottom: 24 }}>
+            <div className="no-print" style={{ maxWidth: 850, width: '100%', background: '#fff', padding: 40, borderRadius: 16, marginBottom: 24 }}>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <div style={{ width: 60, height: 60, background: '#EAF7EE', color: '#1E7B3C', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>
-                  <i className="fas fa-check"></i>
-                </div>
                 <h2 className="serif" style={{ fontSize: 28, color: '#0A1F12', margin: '0 0 8px' }}>Contract Executed!</h2>
-                <p style={{ fontSize: 15, color: 'rgba(10,31,18,0.7)', margin: 0, lineHeight: 1.6 }}>
-                  Your Agreement of Engagement for the <strong>{selectedRole.title}</strong> role is ready.<br/>
-                  Please download, sign, and send a copy to HR before proceeding.
-                </p>
+                <p style={{ fontSize: 15, color: 'rgba(10,31,18,0.7)' }}>Please download, sign, and send a copy to HR before proceeding.</p>
               </div>
-
               <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: 24 }}>
-                <Btn onClick={() => window.print()} size="lg" variant="dark" style={{ width: '100%' }}>
-                  <i className="fas fa-print"></i> 1. Print / Save PDF
-                </Btn>
-                <a href={`https://wa.me/260762499581?text=${hrWhatsAppMsg}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                  <Btn size="lg" variant="whatsapp" style={{ width: '100%' }}>
-                    <i className="fab fa-whatsapp"></i> 2. Send via WhatsApp
-                  </Btn>
-                </a>
-                <a href={`mailto:hr@starteasyzambia.com?subject=${hrEmailSubject}&body=${hrEmailBody}`} style={{ textDecoration: 'none' }}>
-                  <Btn size="lg" variant="email" style={{ width: '100%' }}>
-                    <i className="fas fa-envelope"></i> 2. Send via Email
-                  </Btn>
-                </a>
+                <Btn onClick={() => window.print()} size="lg" variant="dark"><i className="fas fa-print"></i> 1. Print / Save PDF</Btn>
+                <a href={`https://wa.me/260762499581?text=${hrWhatsAppMsg}`} target="_blank" rel="noopener noreferrer"><Btn size="lg" variant="success" style={{ width: '100%' }}><i className="fab fa-whatsapp"></i> 2. Send via WhatsApp</Btn></a>
+                <a href={`mailto:hr@starteasyzambia.com?subject=${hrEmailSubject}&body=${hrEmailBody}`}><Btn size="lg" variant="ghost" style={{ width: '100%' }}><i className="fas fa-envelope"></i> 2. Send via Email</Btn></a>
               </div>
-
-              <div style={{ background: '#FFF9E6', border: '1px solid #F0E0A0', padding: 16, borderRadius: 8, marginBottom: 24, fontSize: 13, color: '#8A6828', lineHeight: 1.6 }}>
-                <strong>Important:</strong> If you choose email, please remember to <strong>attach the PDF</strong> you downloaded in Step 1 before hitting send.
-              </div>
-
-              <div style={{ borderTop: '1px solid #eee', paddingTop: 24, textAlign: 'center' }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#0A1F12', marginBottom: 16 }}>Once you have sent the agreement to HR, proceed to setup your account.</p>
-                <Btn onClick={() => { setView('create-account'); window.scrollTo(0,0); }} size="lg" variant="primary" style={{ width: '100%', maxWidth: 400 }}>
-                  3. Proceed to Create Account <i className="fas fa-arrow-right"></i>
-                </Btn>
+              <div style={{ textAlign: 'center', borderTop: '1px solid #eee', paddingTop: 24 }}>
+                <Btn onClick={() => { setView('create-account'); window.scrollTo(0,0); }} size="lg" variant="primary" style={{ width: '100%', maxWidth: 400 }}>3. Proceed to Create Account <i className="fas fa-arrow-right"></i></Btn>
               </div>
             </div>
-
-            {/* Printable Contract Preview */}
-            <div className="el printable" style={{ marginTop: 20 }}>
-              <div className="eh">
-                <div>
-                  <div className="brand">Start<em>Easy Zambia</em></div>
-                  <div className="sub">Founding Team Engagement</div>
-                </div>
-                <div>
-                  <div className="dt">AGREEMENT OF ENGAGEMENT</div>
-                  <div className="mt">
-                    {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </div>
-                </div>
-              </div>
-
-              <p>
-                This Agreement of Engagement is entered into by StartEasy Zambia (the "Company") and <strong>{form.name}</strong> (the "Appointee"). By digitally signing this document, the Appointee formally accepts the appointment, terms, and responsibilities outlined herein.
-              </p>
-
-              <h4>1. Appointment & Position</h4>
-              <p>The Company hereby appoints the Appointee to the position of <strong>{selectedRole.title}</strong>. {selectedRole.reporting}</p>
-
-              <h4>2. Role Summary</h4>
-              <p>{selectedRole.summary}</p>
-
-              <h4>3. Specific Duties & Responsibilities</h4>
-              <ul>
-                {selectedRole.responsibilities.map((item, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}
-              </ul>
-
-              <h4>4. Performance Milestones (First 90 Days)</h4>
-              <ul>
-                <li><strong>Month 1:</strong> {selectedRole.month1}</li>
-                <li><strong>Month 2:</strong> {selectedRole.month2}</li>
-                <li><strong>Month 3:</strong> {selectedRole.month3}</li>
-              </ul>
-
-              <h4>5. Remuneration & Compensation</h4>
-              <ul>
-                {selectedRole.compensation.map((item, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}
-              </ul>
-
-              <h4>6. Resources, Work Environment & Terms</h4>
-              <p><strong>Allocated Resources:</strong> {selectedRole.resources}</p>
-              <p><strong>Work Environment:</strong> {selectedRole.environment}</p>
-              <ul>
-                {selectedRole.terms.map((term, idx) => <li key={idx} dangerouslySetInnerHTML={{__html: fmt(term)}} />)}
-                <li><strong>Confidentiality:</strong> You must keep all of our business plans, client information, and strategies completely confidential.</li>
-              </ul>
-
-              <h4>7. Appointee Details</h4>
-              <div className="form-grid-2">
-                <span>
-                  <strong>Full Legal Name:</strong><br/>
-                  <div style={{ padding: '6px 0', borderBottom: '1px solid #ccc' }}>{form.name}</div>
-                </span>
-                <span>
-                  <strong>Email Address:</strong><br/>
-                  <div style={{ padding: '6px 0', borderBottom: '1px solid #ccc' }}>{form.email}</div>
-                </span>
-                <span>
-                  <strong>Phone / WhatsApp:</strong><br/>
-                  <div style={{ padding: '6px 0', borderBottom: '1px solid #ccc' }}>{form.phone}</div>
-                </span>
-                <span>
-                  <strong>Current Location:</strong><br/>
-                  <div style={{ padding: '6px 0', borderBottom: '1px solid #ccc' }}>{form.location}</div>
-                </span>
-              </div>
-
-              <h4>8. Declaration & Acceptance</h4>
-              <p>I, the undersigned Appointee, hereby declare that I have read, understood, and voluntarily accept the terms, compensation structure, and 90-day priorities outlined in this Agreement of Engagement. I acknowledge that this is an Entrepreneurship/Intrapreneurship opportunity and not a standard employment contract.</p>
-
-              <div className="sign">
-                <div>
-                  <div className="sigval" style={{ color: '#1B6CA8' }}>Mwaba Lewis</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0A1F12', marginBottom: 4 }}>MWABA LEWIS</div>
-                  <div className="lbl">Founder, StartEasy Zambia</div>
-                </div>
-                <div>
-                  <div className="sigval" style={{ color: '#E8730F' }}>{form.name}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0A1F12', marginBottom: 4 }}>{form.name}</div>
-                  <div className="lbl">Appointee</div>
-                </div>
-              </div>
-            </div>
-
           </div>
         )}
 
         {/* ─── CREATE ACCOUNT ─── */}
         {view === 'create-account' && selectedRole && (
           <div className="fadein main-container" style={{ minHeight: '80vh', justifyContent: 'center' }}>
-            <div style={{ maxWidth: 500, width: '100%', background: '#fff', padding: 40, borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.08)', border: '1px solid rgba(10,31,18,.08)' }}>
+            <div style={{ maxWidth: 500, width: '100%', background: '#fff', padding: 40, borderRadius: 16 }}>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <div style={{ width: 60, height: 60, background: '#EAF7EE', color: '#1E7B3C', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>
-                  <i className="fas fa-lock"></i>
-                </div>
                 <h2 className="serif" style={{ fontSize: 26, color: '#0A1F12', margin: '0 0 8px' }}>Create Account</h2>
-                <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)', margin: 0, lineHeight: 1.5 }}>
-                  Set a password to access your onboarding workspace and dashboard.
-                </p>
+                <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)' }}>Set a password to access your workspace.</p>
               </div>
-
               <form onSubmit={handleCreateAccount}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#0A1F12' }}>Registered Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  readOnly
-                  style={{ width: '100%', padding: 12, border: '1px solid #eee', background: '#f9f9f9', color: '#666', borderRadius: 8, marginBottom: 16 }}
-                />
-
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#0A1F12' }}>Create Password</label>
-                <div style={{ marginBottom: 16 }}>
-                  <PasswordField
-                    value={authPassword}
-                    onChange={e => setAuthPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    autoComplete="new-password"
-                  />
-                </div>
-
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#0A1F12' }}>Confirm Password</label>
-                <div style={{ marginBottom: 16 }}>
-                  <PasswordField
-                    value={authConfirmPassword}
-                    onChange={e => setAuthConfirmPassword(e.target.value)}
-                    placeholder="Re-enter password"
-                    autoComplete="new-password"
-                  />
-                </div>
-
-                {authError && <div style={{ color: '#B8564F', fontSize: 13, marginBottom: 16, fontWeight: 600, lineHeight: 1.5 }}>{authError}</div>}
-
-                <Btn type="submit" disabled={busy} size="lg" variant="primary" style={{ width: '100%' }}>
-                  {busy ? <><i className="fas fa-circle-notch spin"></i> Creating Account…</> : 'Create Account & Enter Portal'}
-                </Btn>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Email</label>
+                <input type="email" value={form.email} readOnly style={{ width: '100%', padding: 12, background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, marginBottom: 16 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Create Password</label>
+                <div style={{ marginBottom: 16 }}><PasswordField value={authPassword} onChange={e => setAuthPassword(e.target.value)} /></div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Confirm Password</label>
+                <div style={{ marginBottom: 16 }}><PasswordField value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} /></div>
+                {authError && <div style={{ color: '#B8564F', fontSize: 13, marginBottom: 16, fontWeight: 600 }}>{authError}</div>}
+                <Btn type="submit" disabled={busy} size="lg" variant="primary" style={{ width: '100%' }}>{busy ? 'Creating...' : 'Create Account'}</Btn>
               </form>
-
-              <div style={{ textAlign: 'center', marginTop: 20 }}>
-                <p style={{ fontSize: 12, color: 'rgba(10,31,18,0.5)', margin: 0 }}>
-                  Already created an account?{' '}
-                  <span onClick={() => { setView('login'); setAuthError(''); }} style={{ color: '#E8730F', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
-                    Log in here
-                  </span>
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -1314,14 +1033,8 @@ function App() {
         {/* ─── DASHBOARD FALLBACK ─── */}
         {view === 'dashboard' && !userData && (
           <div className="fadein main-container" style={{ minHeight: '60vh', justifyContent: 'center' }}>
-            <div style={{ background: '#fff', padding: 40, borderRadius: 16, textAlign: 'center', maxWidth: 450, boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
-              <div style={{ width: 60, height: 60, background: '#FFF3E0', color: '#E8730F', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>
-                <i className="fas fa-user-slash"></i>
-              </div>
+            <div style={{ background: '#fff', padding: 40, borderRadius: 16, textAlign: 'center', maxWidth: 450 }}>
               <h2 className="serif" style={{ fontSize: 24, color: '#0A1F12', marginBottom: 12 }}>Profile Not Found</h2>
-              <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)', lineHeight: 1.6, marginBottom: 24 }}>
-                We couldn't load your profile details. This usually happens if your account is from a different StartEasy portal or if your profile is still being set up.
-              </p>
               <Btn onClick={handleLogout} variant="primary" style={{ width: '100%' }}>Log Out & Try Again</Btn>
             </div>
           </div>
@@ -1331,212 +1044,101 @@ function App() {
         {view === 'dashboard' && userData && (
           <div className="fadein main-container" style={{ minHeight: '100vh' }}>
             <div style={{ maxWidth: 900, margin: '0 auto', width: '100%' }}>
-
-              <div style={{ background: 'linear-gradient(135deg,#0A1F12,#123A1F)', padding: '40px', borderRadius: 16, textAlign: 'center', marginBottom: 32, color: '#fff', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', width: '100%' }}>
-                <div style={{ width: 64, height: 64, background: '#EAF7EE', color: '#1E7B3C', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px' }}>
-                  <i className="fas fa-handshake"></i>
-                </div>
+              <div style={{ background: 'linear-gradient(135deg,#0A1F12,#123A1F)', padding: '40px', borderRadius: 16, textAlign: 'center', marginBottom: 32, color: '#fff' }}>
                 <h1 className="serif" style={{ fontSize: 32, margin: '0 0 12px' }}>Welcome to the Team, {userData.name.split(' ')[0]}!</h1>
-                <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)', maxWidth: 600, margin: '0 auto', lineHeight: 1.6 }}>
-                  You are now officially part of the StartEasy Zambia founding team as the <strong>{userData.roleTitle}</strong>.
-                </p>
+                <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }}>Role: <strong>{userData.roleTitle}</strong></p>
               </div>
 
-              <div className="fadein" style={{ width: '100%' }}>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 32, width: '100%' }}>
-                  <div style={{ background: '#0A1F12', borderRadius: 16, padding: 32, color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <h3 className="serif" style={{ fontSize: 22, color: '#F5A623', marginBottom: 12 }}>Message from the Founder</h3>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, marginBottom: 20 }}>
-                      "Welcome aboard. We are building something truly special here at StartEasy Zambia. Your role is critical to our success. I look forward to working closely with you. Let's get to work."
-                    </p>
-                    <p style={{ fontSize: 14, fontWeight: 700 }}>— Mwaba Lewis, Founder</p>
-                  </div>
-
-                  <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0A1F12', marginBottom: 16 }}>Request IT Setup</h3>
-                    {itRequestSent ? (
-                      <div style={{ background: '#EAF7EE', color: '#1E7B3C', padding: 16, borderRadius: 8, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>
-                        <i className="fas fa-check-circle" style={{ marginBottom: 8, fontSize: 24, display: 'block' }}></i>
-                        Your request has been sent to HR!
-                      </div>
-                    ) : (
-                      <form onSubmit={submitITRequest}>
-                        <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.7)', marginBottom: 16 }}>Do you need a company email address, laptop, or software license?</p>
-                        <textarea
-                          value={itRequest}
-                          onChange={e => setItRequest(e.target.value)}
-                          placeholder="e.g., I need a company email and a Zoom Pro license..."
-                          style={{ width: '100%', height: 80, padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16, fontFamily: 'inherit' }}
-                        />
-                        <Btn type="submit" variant="ghost" style={{ width: '100%' }}>Send Request</Btn>
-                      </form>
-                    )}
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 32 }}>
+                <div style={{ background: '#0A1F12', borderRadius: 16, padding: 32, color: '#fff' }}>
+                  <h3 className="serif" style={{ fontSize: 22, color: '#F5A623', marginBottom: 12 }}>Message from the Founder</h3>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, marginBottom: 20 }}>
+                    "Welcome aboard. We are building something truly special here at StartEasy Zambia. Your role is critical to our success."
+                  </p>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>— Mwaba Lewis, Founder</p>
                 </div>
 
-                {/* ─── ADMIN: UPLOAD RESOURCES SECTION ─── */}
-                {isAdmin && (
-                  <div style={{ background: '#FFF9E6', borderRadius: 16, padding: 32, border: '1px solid #F0E0A0', marginBottom: 32, width: '100%' }}>
-                    <h2 style={{ fontSize: 20, fontWeight: 800, color: '#8A6828', marginBottom: 8 }}>
-                      <i className="fas fa-cloud-upload-alt"></i> Admin: Upload New Resource
-                    </h2>
-                    <p style={{ fontSize: 13, color: '#8A6828', marginBottom: 16 }}>Files uploaded here will instantly appear in the "Guidance & Resources" tab for all team members.</p>
-                    
-                    <form onSubmit={handleUploadResource} style={{ display: 'grid', gap: 12 }}>
-                      <input 
-                        type="text" 
-                        placeholder="Document Title (e.g. Employee Handbook)" 
-                        value={resTitle} 
-                        onChange={e => setResTitle(e.target.value)} 
-                        required 
-                        style={{ padding: 12, border: '1px solid #ccc', borderRadius: 6, fontFamily: 'inherit', fontSize: 14 }} 
-                      />
-                      <input 
-                        type="text" 
-                        placeholder="Short Description" 
-                        value={resDesc} 
-                        onChange={e => setResDesc(e.target.value)} 
-                        required 
-                        style={{ padding: 12, border: '1px solid #ccc', borderRadius: 6, fontFamily: 'inherit', fontSize: 14 }} 
-                      />
-                      <input 
-                        type="file" 
-                        onChange={e => setResFile(e.target.files[0])} 
-                        required 
-                        style={{ padding: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 6, fontFamily: 'inherit', fontSize: 14 }} 
-                      />
-                      <Btn type="submit" disabled={uploadingRes} variant="dark" style={{ marginTop: 8 }}>
-                        {uploadingRes ? <><i className="fas fa-circle-notch spin"></i> Uploading…</> : 'Upload Resource'}
-                      </Btn>
+                <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>Request IT Setup</h3>
+                  {itRequestSent ? (
+                    <div style={{ background: '#EAF7EE', color: '#1E7B3C', padding: 16, borderRadius: 8, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>Request Sent!</div>
+                  ) : (
+                    <form onSubmit={submitITRequest}>
+                      <textarea value={itRequest} onChange={e => setItRequest(e.target.value)} placeholder="Need a laptop or software?" style={{ width: '100%', height: 80, padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} />
+                      <Btn type="submit" variant="ghost" style={{ width: '100%' }}>Send Request</Btn>
                     </form>
+                  )}
+                </div>
+              </div>
+
+              {/* ADMIN UPLOAD */}
+              {isAdmin && (
+                <div style={{ background: '#FFF9E6', borderRadius: 16, padding: 32, border: '1px solid #F0E0A0', marginBottom: 32 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#8A6828', marginBottom: 8 }}><i className="fas fa-cloud-upload-alt"></i> Admin: Upload New Resource</h2>
+                  <form onSubmit={handleUploadResource} style={{ display: 'grid', gap: 12 }}>
+                    <input type="text" placeholder="Document Title" value={resTitle} onChange={e => setResTitle(e.target.value)} required style={{ padding: 10, border: '1px solid #ccc', borderRadius: 6 }} />
+                    <input type="text" placeholder="Short Description" value={resDesc} onChange={e => setResDesc(e.target.value)} required style={{ padding: 10, border: '1px solid #ccc', borderRadius: 6 }} />
+                    <input type="file" onChange={e => setResFile(e.target.files[0])} required style={{ padding: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 6 }} />
+                    <Btn type="submit" disabled={uploadingRes} variant="dark" style={{ marginTop: 8 }}>{uploadingRes ? 'Uploading...' : 'Upload Resource'}</Btn>
+                  </form>
+                </div>
+              )}
+
+              {/* TEAM SECTION */}
+              <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24 }}>Meet the Founding Team</h2>
+                {showPhotoEdit && (
+                  <div style={{ background: '#F9FBFA', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid #E8730F' }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Update Profile Image URL</label>
+                    <input type="url" value={photoUrlInput} onChange={e => setPhotoUrlInput(e.target.value)} placeholder="https://..." style={{ width: '100%', padding: 10, border: '1px solid #ccc', borderRadius: 6, marginBottom: 12 }} />
+                    <Btn onClick={handleUpdatePhoto} disabled={photoSaving} size="sm" variant="primary">{photoSaving ? 'Saving...' : 'Save Photo'}</Btn>
                   </div>
                 )}
-
-                <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', width: '100%', marginBottom: 32 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0A1F12', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <i className="fas fa-laptop-code" style={{ color: '#E8730F' }}></i> Your Remote Workspace
-                  </h2>
-
-                  <div style={{ display: 'grid', gap: 16 }}>
-                    {[
-                      { title: 'Team WhatsApp Group', desc: 'Join the internal group for instant communication.', icon: 'fa-whatsapp', color: '#25D366', link: 'https://chat.whatsapp.com/KvfbdH4Aw7f7bericuwSyx', btn: 'Join WhatsApp' },
-                      { title: 'StartEasy Slack Workspace', desc: 'Our primary tool for project channels and daily updates.', icon: 'fa-slack', color: '#4A154B', link: 'https://slack.com/mock-invite', btn: 'Open Slack' },
-                      { title: 'Company Notion Wiki', desc: 'Access all SOPs, brand guidelines, and project boards.', icon: 'fa-book', color: '#000000', link: 'https://notion.so/mock-invite', btn: 'Open Notion' },
-                    ].map((task, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, border: '1px solid #eee', borderRadius: 8, flexWrap: 'wrap', gap: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                          <div style={{ width: 44, height: 44, borderRadius: 10, background: `${task.color}15`, color: task.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                            <i className={`fab ${task.icon}`}></i>
-                          </div>
-                          <div>
-                            <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#0A1F12' }}>{task.title}</h4>
-                            <p style={{ fontSize: 13, color: 'rgba(10,31,18,0.6)', margin: 0 }}>{task.desc}</p>
-                          </div>
-                        </div>
-                        <a href={task.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                          <Btn size="md" variant="dark">{task.btn} <i className="fas fa-external-link-alt" style={{ fontSize: 12, marginLeft: 4 }}></i></Btn>
-                        </a>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                  <div style={{ textAlign: 'center', padding: 20, border: '2px solid #E8730F', borderRadius: 12, background: '#FFF9E6', position: 'relative' }}>
+                    <button onClick={() => setShowPhotoEdit(!showPhotoEdit)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }}><i className="fas fa-edit"></i></button>
+                    <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
+                        <img src={userData.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A1F12&color=fff&size=80`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
-                    ))}
+                    </div>
+                    <h4 style={{ fontSize: 16, fontWeight: 700 }}>{userData.name} (You)</h4>
+                    <p style={{ fontSize: 12, color: '#E8730F', fontWeight: 700, textTransform: 'uppercase' }}>{userData.roleTitle}</p>
                   </div>
-                </div>
 
-                {/* ─── DYNAMIC TEAM SECTION ─── */}
-                <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)', width: '100%' }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0A1F12', marginBottom: 24 }}>Meet the Founding Team</h2>
-                  
-                  {showPhotoEdit && (
-                    <div style={{ background: '#F9FBFA', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid #E8730F' }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 8, color: '#0A1F12' }}>Update Your Profile Image URL</label>
-                      <input 
-                        type="url" 
-                        value={photoUrlInput} 
-                        onChange={e => setPhotoUrlInput(e.target.value)} 
-                        placeholder="https://example.com/your-photo.jpg"
-                        style={{ width: '100%', padding: 10, border: '1px solid #ccc', borderRadius: 6, marginBottom: 12, fontSize: 13 }}
-                      />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <Btn onClick={handleUpdatePhoto} disabled={photoSaving} size="sm" variant="primary">
-                          {photoSaving ? 'Saving...' : 'Save Photo'}
-                        </Btn>
-                        <Btn onClick={() => setShowPhotoEdit(false)} size="sm" variant="ghost">Cancel</Btn>
+                  {userData.email !== 'lewismwaba@gmail.com' && (
+                    <div style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
+                      <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
+                        <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
+                          <img src="cropped-1713948169242.jpg" alt="Mwaba Lewis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
                       </div>
+                      <h4 style={{ fontSize: 16, fontWeight: 700 }}>Mwaba Lewis</h4>
+                      <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, textTransform: 'uppercase' }}>Founder</p>
                     </div>
                   )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-                    
-                    {/* The Logged-in User (Always visible first) */}
-                    <div style={{ textAlign: 'center', padding: 20, border: '2px solid #E8730F', borderRadius: 12, position: 'relative', background: '#FFF9E6' }}>
-                      <button 
-                        onClick={() => setShowPhotoEdit(!showPhotoEdit)} 
-                        style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }}
-                        title="Update Profile Picture"
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                      
-                      {/* Branded Gradient Ring Wrapper */}
-                      <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {teamMembers.filter(m => m.id !== user.uid).map(member => (
+                    <div key={member.id} style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
+                      <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
                         <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                          {userData.photoUrl ? (
-                            <img src={userData.photoUrl} alt={userData.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A1F12&color=fff&size=80`} alt={userData.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          )}
+                          <img src={member.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0A1F12&color=fff&size=80`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       </div>
-                      
-                      <h4 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px' }}>{userData.name} (You)</h4>
-                      <p style={{ fontSize: 12, color: '#E8730F', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{userData.roleTitle}</p>
+                      <h4 style={{ fontSize: 16, fontWeight: 700 }}>{member.name}</h4>
+                      <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, textTransform: 'uppercase' }}>{member.roleTitle}</p>
                     </div>
-
-                    {/* Hardcoded Founder (If current user is not Mwaba) */}
-                    {userData.email !== 'lewismwaba@gmail.com' && (
-                      <div style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
-                        <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                            <img src="cropped-1713948169242.jpg" alt="Mwaba Lewis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        </div>
-                        <h4 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px' }}>Mwaba Lewis</h4>
-                        <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>Founder</p>
-                      </div>
-                    )}
-
-                    {/* Other Dynamic Team Members from Firestore */}
-                    {teamMembers.filter(m => m.id !== user.uid).map(member => (
-                      <div key={member.id} style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
-                        <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                            {member.photoUrl ? (
-                              <img src={member.photoUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0A1F12&color=fff&size=80`} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            )}
-                          </div>
-                        </div>
-                        <h4 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px' }}>{member.name}</h4>
-                        <p style={{ fontSize: 12, color: '#1E7B3C', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>{member.roleTitle}</p>
-                      </div>
-                    ))}
-
-                  </div>
+                  ))}
                 </div>
-
               </div>
-
             </div>
           </div>
         )}
-
       </main>
 
-      <footer className="no-print" style={{ background: '#0A1F12', padding: '40px 24px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', width: '100%' }}>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: 0 }}>© {new Date().getFullYear()} StartEasy Zambia. All rights reserved.</p>
+      <footer className="no-print" style={{ background: '#0A1F12', padding: '40px 24px', textAlign: 'center' }}>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>© {new Date().getFullYear()} StartEasy Zambia. All rights reserved.</p>
       </footer>
-
     </div>
   );
 }
