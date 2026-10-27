@@ -375,7 +375,9 @@ function App() {
   const [userData, setUserData] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [resources, setResources] = useState([]);
+  const [inviteLogs, setInviteLogs] = useState([]);
   const [authLoading, setAuthLoading] = useState(true);
+  const [missingProfile, setMissingProfile] = useState(false);
 
   // Profile Edit State
   const [photoUrlInput, setPhotoUrlInput] = useState('');
@@ -423,10 +425,9 @@ function App() {
             setPhotoUrlInput(data.photoUrl || '');
             setView('dashboard');
           } else {
-            setUser(null); setUserData(null);
-            setView('login');
-            setAuthError("This email is registered, but we couldn't find a Founding Team profile for it.");
-            auth.signOut();
+            // Profile missing in Firestore but exists in Auth!
+            setMissingProfile(true);
+            setView('recover-profile');
           }
         } catch (e) {
           setUser(null); setUserData(null);
@@ -435,6 +436,7 @@ function App() {
         }
       } else {
         setUser(null); setUserData(null);
+        setMissingProfile(false);
       }
       setBusy(false);
       setAuthLoading(false);
@@ -442,7 +444,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch Team Members & Resources
+  // Fetch Team Members, Resources & Logs
   useEffect(() => {
     if (!userData) return;
     
@@ -454,7 +456,11 @@ function App() {
       setResources(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (err) => console.warn("Resource fetch error:", err.message));
 
-    return () => { unsubTeam(); unsubRes(); };
+    const unsubLogs = db.collection('se_invite_logs').orderBy('timestamp', 'desc').onSnapshot(snap => {
+      setInviteLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.warn("Logs fetch error:", err.message));
+
+    return () => { unsubTeam(); unsubRes(); unsubLogs(); };
   }, [userData]);
 
   // Handle Photo Upload
@@ -527,6 +533,39 @@ function App() {
     }
   };
 
+  // ─── PROFILE RECOVERY (For Ghost Accounts) ───────
+  const handleRecoverProfile = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim() || !form.location.trim()) {
+      return setError('Please fill in all fields.');
+    }
+    
+    // We need them to pick a role since it's missing
+    const chosenRole = ROLES['ceo']; // Default to CEO if we don't know
+
+    setBusy(true);
+    try {
+      const profile = {
+        name: form.name.trim(),
+        email: user.email,
+        phone: form.phone.trim(),
+        location: form.location.trim(),
+        roleId: chosenRole.id,
+        roleTitle: chosenRole.title,
+        photoUrl: '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await db.collection('se_appointees').doc(user.uid).set(profile);
+      setUserData(profile);
+      setMissingProfile(false);
+      setView('dashboard');
+    } catch (err) {
+      setError("Failed to save profile: " + err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // ─── AUTH: create account (WITH GHOST CLEANUP) ───────
   const handleCreateAccount = async (e) => {
     e.preventDefault();
@@ -537,10 +576,8 @@ function App() {
     setBusy(true);
     let cred = null;
     try {
-      // 1. Create Auth User
       cred = await auth.createUserWithEmailAndPassword(form.email.trim().toLowerCase(), authPassword);
       
-      // 2. Save Appointee Data to Firestore
       const profile = {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
@@ -558,7 +595,6 @@ function App() {
       window.scrollTo(0, 0);
     } catch (err) {
       console.error(err);
-      // 3. CLEANUP: If Firestore failed, delete the Auth user so it doesn't become a ghost!
       if (cred && cred.user) {
         try { await cred.user.delete(); } catch (delErr) { console.error("Cleanup failed:", delErr); }
       }
@@ -615,7 +651,6 @@ function App() {
       window.scrollTo(0, 0);
       setIsMenuOpen(false);
 
-      // Log the click in the background
       try {
         await db.collection('se_invite_logs').add({
           code: codeUpper,
@@ -659,6 +694,7 @@ function App() {
     setResetSent(false);
     setIsMenuOpen(false);
     setShowPhotoEdit(false);
+    setMissingProfile(false);
     window.scrollTo(0, 0);
   };
 
@@ -734,6 +770,40 @@ function App() {
       </header>
 
       <main style={{ flex: 1, background: '#F5FAF6', width: '100%', overflowX: 'hidden' }}>
+
+        {/* ─── RECOVER PROFILE (For Missing Firestore Docs) ─── */}
+        {view === 'recover-profile' && missingProfile && (
+          <div className="fadein main-container" style={{ minHeight: '80vh', justifyContent: 'center' }}>
+            <div style={{ maxWidth: 500, width: '100%', background: '#fff', padding: 40, borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.08)' }}>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ width: 60, height: 60, background: '#FFF9E6', color: '#E8730F', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 16px' }}>
+                  <i className="fas fa-user-shield"></i>
+                </div>
+                <h2 className="serif" style={{ fontSize: 26, color: '#0A1F12', margin: '0 0 8px' }}>Action Required</h2>
+                <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)', margin: 0, lineHeight: 1.5 }}>
+                  We found your login (<strong>{user?.email}</strong>), but your profile data was not saved during the initial setup. Please complete your details below to restore your access.
+                </p>
+              </div>
+              
+              <form onSubmit={handleRecoverProfile}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Full Name</label>
+                <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Chanda Mwape" required style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} />
+                
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Phone Number</label>
+                <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+260..." required style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} />
+                
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Location</label>
+                <input type="text" value={form.location} onChange={e => setForm({...form, location: e.target.value})} placeholder="e.g. Lusaka, Zambia" required style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} />
+
+                {error && <div style={{ color: '#B8564F', fontSize: 13, marginBottom: 16, fontWeight: 600 }}>{error}</div>}
+
+                <Btn type="submit" disabled={busy} size="lg" variant="primary" style={{ width: '100%' }}>
+                  {busy ? 'Restoring Profile...' : 'Save & Enter Dashboard'}
+                </Btn>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* ─── LANDING ─── */}
         {view === 'gateway' && (
@@ -1094,6 +1164,66 @@ function App() {
                     <input type="file" onChange={e => setResFile(e.target.files[0])} required style={{ padding: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 6 }} />
                     <Btn type="submit" disabled={uploadingRes} variant="dark" style={{ marginTop: 8 }}>{uploadingRes ? 'Uploading...' : 'Upload Resource'}</Btn>
                   </form>
+                </div>
+              )}
+
+              {/* ADMIN: VIEW LOGS */}
+              {isAdmin && (
+                <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)', marginBottom: 32 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24 }}>Admin: Code Entry Logs</h2>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#F9FBFA', borderBottom: '1px solid #eee' }}>
+                          <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Code</th>
+                          <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Role</th>
+                          <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inviteLogs.length === 0 ? (
+                          <tr><td colSpan="3" style={{ padding: 20, textAlign: 'center', color: 'rgba(10,31,18,0.5)' }}>No code entries recorded yet.</td></tr>
+                        ) : (
+                          inviteLogs.map(log => (
+                            <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
+                              <td style={{ padding: 12, fontWeight: 700 }}>{log.code}</td>
+                              <td style={{ padding: 12 }}>{log.roleTitle}</td>
+                              <td style={{ padding: 12, color: 'rgba(10,31,18,0.6)' }}>
+                                {log.timestamp ? new Date(log.timestamp.toDate()).toLocaleString() : 'Pending...'}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ADMIN: VIEW ALL APPOINTEES */}
+              {isAdmin && (
+                <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)', marginBottom: 32 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24 }}>Admin: Registered Appointees</h2>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#F9FBFA', borderBottom: '1px solid #eee' }}>
+                          <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Name</th>
+                          <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Email</th>
+                          <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Role</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teamMembers.map(member => (
+                          <tr key={member.id} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: 12, fontWeight: 700 }}>{member.name}</td>
+                            <td style={{ padding: 12 }}>{member.email}</td>
+                            <td style={{ padding: 12 }}>{member.roleTitle}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
