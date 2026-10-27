@@ -99,6 +99,7 @@ const { useState, useEffect } = React;
 // ─── CLOUDINARY CONFIGURATION ──────────────────────
 const CLOUDINARY_CONFIG = {
   cloudName: "dc21o9hz",
+  // 👇 YOU MUST PASTE YOUR UNSIGNED UPLOAD PRESET HERE FOR PHOTOS TO WORK 👇
   uploadPreset: "YOUR_UNSIGNED_UPLOAD_PRESET_HERE" 
 };
 
@@ -343,6 +344,12 @@ const PasswordField = ({ value, onChange, placeholder, autoComplete }) => {
   );
 };
 
+// 👇 ADDED: Helper to handle broken image links gracefully
+const handleImageError = (e, name) => {
+  e.target.onerror = null; // Prevent infinite loop
+  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0A1F12&color=fff&size=80`;
+};
+
 function firebaseErrorMsg(err, context = 'auth') {
   const code = err && err.code;
   if (code === 'permission-denied') return "Database Permission Denied! Your Firebase Security Rules are blocking access.";
@@ -379,8 +386,9 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [missingProfile, setMissingProfile] = useState(false);
 
-  // Profile Edit State
-  const [photoUrlInput, setPhotoUrlInput] = useState('');
+  // Profile Edit State (NOW HANDLES FILE UPLOAD)
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
   const [showPhotoEdit, setShowPhotoEdit] = useState(false);
   const [photoSaving, setPhotoSaving] = useState(false);
 
@@ -422,7 +430,6 @@ function App() {
           if (snap && snap.exists) {
             const data = snap.data();
             setUserData(data);
-            setPhotoUrlInput(data.photoUrl || '');
             setView('dashboard');
           } else {
             // Profile missing in Firestore but exists in Auth!
@@ -463,14 +470,53 @@ function App() {
     return () => { unsubTeam(); unsubRes(); unsubLogs(); };
   }, [userData]);
 
-  // Handle Photo Upload
+  // ─── HANDLE PROFILE PICTURE DIRECT UPLOAD ───────
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return alert("File is too large. Please select an image under 5MB.");
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file)); // Show preview instantly
+  };
+
   const handleUpdatePhoto = async () => {
-    if (!user) return;
+    if (!user || !photoFile) return;
+    
+    if (CLOUDINARY_CONFIG.uploadPreset === "YOUR_UNSIGNED_UPLOAD_PRESET_HERE") {
+      return alert("Please configure your Cloudinary Upload Preset in the code first.");
+    }
+
     setPhotoSaving(true);
     try {
-      await db.collection('se_appointees').doc(user.uid).update({ photoUrl: photoUrlInput.trim() });
-      setUserData(prev => ({ ...prev, photoUrl: photoUrlInput.trim() }));
-      setShowPhotoEdit(false);
+      // 1. Upload file to Cloudinary
+      const formData = new FormData();
+      formData.append('file', photoFile);
+      formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/auto/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.secure_url) {
+        // 2. Save URL to Firestore
+        await db.collection('se_appointees').doc(user.uid).update({ photoUrl: data.secure_url });
+        
+        // 3. Update UI
+        setUserData(prev => ({ ...prev, photoUrl: data.secure_url }));
+        setShowPhotoEdit(false);
+        setPhotoFile(null);
+        setPhotoPreview('');
+      } else {
+        throw new Error(data.error?.message || "Failed to upload to Cloudinary");
+      }
     } catch (e) {
       alert("Failed to update photo: " + e.message);
     } finally {
@@ -478,7 +524,7 @@ function App() {
     }
   };
 
-  // ─── CLOUDINARY UPLOAD LOGIC ───────
+  // ─── CLOUDINARY UPLOAD LOGIC (RESOURCES) ───────
   const handleUploadResource = async (e) => {
     e.preventDefault();
     if (!resFile) return alert('Please select a file to upload.');
@@ -540,7 +586,6 @@ function App() {
       return setError('Please fill in all fields.');
     }
     
-    // We need them to pick a role since it's missing
     const chosenRole = ROLES['ceo']; // Default to CEO if we don't know
 
     setBusy(true);
@@ -694,6 +739,8 @@ function App() {
     setResetSent(false);
     setIsMenuOpen(false);
     setShowPhotoEdit(false);
+    setPhotoFile(null);
+    setPhotoPreview('');
     setMissingProfile(false);
     window.scrollTo(0, 0);
   };
@@ -1230,21 +1277,44 @@ function App() {
               {/* TEAM SECTION */}
               <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24 }}>Meet the Founding Team</h2>
+                
+                {/* --- UPLOAD PHOTO MODAL --- */}
                 {showPhotoEdit && (
-                  <div style={{ background: '#F9FBFA', padding: 16, borderRadius: 8, marginBottom: 24, border: '1px solid #E8730F' }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Update Profile Image URL</label>
-                    <input type="url" value={photoUrlInput} onChange={e => setPhotoUrlInput(e.target.value)} placeholder="https://..." style={{ width: '100%', padding: 10, border: '1px solid #ccc', borderRadius: 6, marginBottom: 12 }} />
-                    <Btn onClick={handleUpdatePhoto} disabled={photoSaving} size="sm" variant="primary">{photoSaving ? 'Saving...' : 'Save Photo'}</Btn>
+                  <div style={{ background: '#F9FBFA', padding: 24, borderRadius: 12, marginBottom: 32, border: '1px solid #E8730F', textAlign: 'center' }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: '#0A1F12' }}>Upload Profile Picture</h3>
+                    
+                    {photoPreview && (
+                      <div style={{ marginBottom: 16 }}>
+                        <img src={photoPreview} alt="Preview" style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', margin: '0 auto', border: '3px solid #E8730F' }} />
+                      </div>
+                    )}
+
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePhotoSelect} 
+                      style={{ display: 'block', width: '100%', maxWidth: 300, margin: '0 auto 16px', padding: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 6, fontSize: 13 }} 
+                    />
+                    
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      <Btn onClick={handleUpdatePhoto} disabled={!photoFile || photoSaving} size="md" variant="primary">
+                        {photoSaving ? <><i className="fas fa-circle-notch spin"></i> Uploading...</> : 'Upload & Save'}
+                      </Btn>
+                      <Btn onClick={() => { setShowPhotoEdit(false); setPhotoFile(null); setPhotoPreview(''); }} size="md" variant="ghost">
+                        Cancel
+                      </Btn>
+                    </div>
                   </div>
                 )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                   
                   {/* Current User */}
                   <div style={{ textAlign: 'center', padding: 20, border: '2px solid #E8730F', borderRadius: 12, background: '#FFF9E6', position: 'relative' }}>
-                    <button onClick={() => setShowPhotoEdit(!showPhotoEdit)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }}><i className="fas fa-edit"></i></button>
+                    <button onClick={() => setShowPhotoEdit(!showPhotoEdit)} style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', color: '#E8730F', cursor: 'pointer' }} title="Update Photo"><i className="fas fa-camera"></i></button>
                     <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
                       <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                        <img src={userData.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A1F12&color=fff&size=80`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={userData.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0A1F12&color=fff&size=80`} onError={(e) => handleImageError(e, userData.name)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     </div>
                     <h4 style={{ fontSize: 16, fontWeight: 700 }}>{userData.name} (You)</h4>
@@ -1256,7 +1326,7 @@ function App() {
                     <div style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
                       <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
                         <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                          <img src="cropped-1713948169242.jpg" alt="Mwaba Lewis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src="cropped-1713948169242.jpg" onError={(e) => handleImageError(e, 'Mwaba Lewis')} alt="Mwaba Lewis" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       </div>
                       <h4 style={{ fontSize: 16, fontWeight: 700 }}>Mwaba Lewis</h4>
@@ -1269,7 +1339,7 @@ function App() {
                     <div key={member.id} style={{ textAlign: 'center', padding: 20, border: '1px solid #eee', borderRadius: 12 }}>
                       <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'linear-gradient(135deg, #1E7B3C, #E8730F)', padding: '4px', margin: '0 auto 12px' }}>
                         <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: '#fff' }}>
-                          <img src={member.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0A1F12&color=fff&size=80`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={member.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0A1F12&color=fff&size=80`} onError={(e) => handleImageError(e, member.name)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       </div>
                       <h4 style={{ fontSize: 16, fontWeight: 700 }}>{member.name}</h4>
