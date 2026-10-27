@@ -96,7 +96,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--orange) !import
 <script type="text/babel" data-presets="react">
 const { useState, useEffect } = React;
 
-// ─── CLOUDINARY CONFIGURATION (FIXED) ──────────────────────
+// ─── CLOUDINARY CONFIGURATION ──────────────────────
 const CLOUDINARY_CONFIG = {
   cloudName: "dc21o9hz",
   uploadPreset: "starteasy_unsigned" 
@@ -1192,6 +1192,37 @@ function App() {
                 </div>
               </div>
 
+              {/* 👇 RESTORED REMOTE WORKSPACE SECTION 👇 */}
+              <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', width: '100%', marginBottom: 32 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0A1F12', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <i className="fas fa-laptop-code" style={{ color: '#E8730F' }}></i> Your Remote Workspace
+                </h2>
+
+                <div style={{ display: 'grid', gap: 16 }}>
+                  {[
+                    { title: 'Team WhatsApp Group', desc: 'Join the internal group for instant communication.', icon: 'fa-whatsapp', color: '#25D366', link: 'https://chat.whatsapp.com/KvfbdH4Aw7f7bericuwSyx', btn: 'Join WhatsApp' },
+                    { title: 'StartEasy Slack Workspace', desc: 'Our primary tool for project channels and daily updates.', icon: 'fa-slack', color: '#4A154B', link: 'https://slack.com/mock-invite', btn: 'Open Slack' },
+                    { title: 'Company Notion Wiki', desc: 'Access all SOPs, brand guidelines, and project boards.', icon: 'fa-book', color: '#000000', link: 'https://notion.so/mock-invite', btn: 'Open Notion' },
+                  ].map((task, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, border: '1px solid #eee', borderRadius: 8, flexWrap: 'wrap', gap: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 10, background: `${task.color}15`, color: task.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                          <i className={`fab ${task.icon}`}></i>
+                        </div>
+                        <div>
+                          <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#0A1F12' }}>{task.title}</h4>
+                          <p style={{ fontSize: 13, color: 'rgba(10,31,18,0.6)', margin: 0 }}>{task.desc}</p>
+                        </div>
+                      </div>
+                      <a href={task.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                        <Btn size="md" variant="dark">{task.btn} <i className="fas fa-external-link-alt" style={{ fontSize: 12, marginLeft: 4 }}></i></Btn>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* 👆 END REMOTE WORKSPACE SECTION 👆 */}
+
               {/* ADMIN UPLOAD */}
               {isAdmin && (
                 <div style={{ background: '#FFF9E6', borderRadius: 16, padding: 32, border: '1px solid #F0E0A0', marginBottom: 32 }}>
@@ -1361,4 +1392,4 @@ function App() {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
-</html>
+  </html>
