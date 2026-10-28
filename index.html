@@ -1415,9 +1415,85 @@ function App() {
                 </div>
               )}
 
-              {/* TEAM SECTION */}
+              {/* ─── NEW ORGANIZATIONAL STRUCTURE SECTION ─── */}
+              <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)', marginBottom: 32 }}>
+                <div style={{ marginBottom: 32 }}>
+                  <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0A1F12', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <i className="fas fa-sitemap" style={{ color: '#E8730F' }}></i> Organizational Structure
+                  </h2>
+                  <p style={{ fontSize: 14, color: 'rgba(10,31,18,0.6)', margin: 0 }}>
+                    A lean, high-performance core team driving our strategy, supported by specialist capabilities as we scale.
+                  </p>
+                </div>
+
+                {/* Core Roles */}
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0A1F12', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>Core Leadership & Execution</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 40 }}>
+                  {[
+                    { title: 'Founder & CEO / Managing Director', dept: 'Leadership', icon: 'fa-crown', color: '#E8730F', bg: '#FFF9E6', desc: 'Company vision, strategy, partnerships, fundraising, revenue performance, and building a strong inclusive culture.' },
+                    { title: 'Technical & Product Lead', dept: 'Technology', icon: 'fa-laptop-code', color: '#1B6CA8', bg: '#E6F0F9', desc: 'Maintaining the web application, managing security and privacy, and turning customer feedback into product improvements.' },
+                    { title: 'Business Operations & Service Delivery Lead', dept: 'Operations', icon: 'fa-briefcase', color: '#1E7B3C', bg: '#EAF7EE', desc: 'Managing customer requests end-to-end, developing SOPs, ensuring quality assurance, and coordinating external professionals.' },
+                    { title: 'Growth, Sales & Partnerships Lead', dept: 'Commercial Growth', icon: 'fa-chart-line', color: '#B8564F', bg: '#FFE8E5', desc: 'Acquiring paying customers, recruiting reliable suppliers, testing pricing, and tracking conversions and repeat purchases.' }
+                  ].map((role, i) => (
+                    <div key={i} style={{ padding: 24, background: '#F9FBFA', border: '1px solid #eee', borderRadius: 12, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 10, background: role.bg, color: role.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                          <i className={`fas ${role.icon}`}></i>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: role.color }}>{role.dept}</span>
+                          <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#0A1F12', lineHeight: 1.3 }}>{role.title}</h4>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 13, color: 'rgba(10,31,18,0.7)', lineHeight: 1.6, margin: 0 }}>{role.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Specialist Support */}
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0A1F12', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>Specialist Support Capabilities</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 40 }}>
+                  {[
+                    { title: 'Compliance, Legal & Regulatory', icon: 'fa-balance-scale', desc: 'Expertise in Zambian business registration, statutory obligations, and regulatory processes.' },
+                    { title: 'Venture Development', icon: 'fa-rocket', desc: 'Guidance on business models, financial projections, operating models, and growth readiness.' },
+                    { title: 'Supplier & Procurement', icon: 'fa-truck-loading', desc: 'Identifying suppliers, assessing reliability, coordinating quotations, and managing enquiries.' }
+                  ].map((spec, i) => (
+                    <div key={i} style={{ padding: 20, background: '#fff', border: '1px dashed #ccc', borderRadius: 8, display: 'flex', gap: 16 }}>
+                      <i className={`fas ${spec.icon}`} style={{ color: '#E8730F', fontSize: 20, marginTop: 4 }}></i>
+                      <div>
+                        <h5 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 6px', color: '#0A1F12' }}>{spec.title}</h5>
+                        <p style={{ fontSize: 12.5, color: 'rgba(10,31,18,0.6)', margin: 0, lineHeight: 1.5 }}>{spec.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Female-Led Vision */}
+                <div style={{ background: 'linear-gradient(135deg, #0A1F12, #123A1F)', padding: 32, borderRadius: 12, color: '#fff' }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#F5A623', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <i className="fas fa-venus"></i> Our Female-Led Team Vision
+                  </h3>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 24, lineHeight: 1.6 }}>
+                    StartEasy is proudly female-led. We believe in a three-dimensional approach to building a genuinely inclusive team:
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                    {[
+                      { title: 'Female Leadership', desc: 'A woman holds genuine authority and is visibly responsible for the company\'s direction.' },
+                      { title: 'Meaningful Participation', desc: 'Women have substantive roles across product, operations, tech, and growth—not just honorary titles.' },
+                      { title: 'Credible Governance', desc: 'Clearly documented responsibilities, decision-making authority, compensation, and ownership.' }
+                    ].map((dim, i) => (
+                      <div key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: 16, borderRadius: 8, borderLeft: '3px solid #F5A623' }}>
+                        <h5 style={{ fontSize: 13.5, fontWeight: 700, margin: '0 0 6px', color: '#fff' }}>{dim.title}</h5>
+                        <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5 }}>{dim.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* TEAM SECTION (MEET THE PEOPLE) */}
               <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
-                <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24 }}>Meet the Founding Team</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24, borderBottom: '2px solid #eee', paddingBottom: 16 }}>Meet the Founding Team</h2>
                 
                 {showPhotoEdit && (
                   <div style={{ background: '#F9FBFA', padding: 24, borderRadius: 12, marginBottom: 32, border: '1px solid #E8730F', textAlign: 'center' }}>
