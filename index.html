@@ -471,7 +471,8 @@ function App() {
   const handlePhotoSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return alert("File is too large. Please select an image under 5MB.");
+    // Changed from 5MB to 2MB to prevent Cloudinary timeouts
+    if (file.size > 2 * 1024 * 1024) return alert("File is too large. Please select an image under 2MB.");
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
@@ -489,6 +490,12 @@ function App() {
         body: formData
       });
 
+      // Handle non-200 responses gracefully
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error?.message || `Upload failed with status ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.secure_url) {
@@ -498,10 +505,12 @@ function App() {
         setPhotoFile(null);
         setPhotoPreview('');
       } else {
-        throw new Error(data.error?.message || "Failed to upload to Cloudinary");
+        throw new Error(data.error?.message || "Failed to get secure URL from Cloudinary");
       }
     } catch (e) {
-      alert("Failed to update photo: " + e.message);
+      console.error("Upload error:", e);
+      const msg = e.message === 'Failed to fetch' ? 'Network error or file too large. Please check your internet connection and try a smaller image.' : e.message;
+      alert("Failed to update photo: " + msg);
     } finally {
       setPhotoSaving(false);
     }
@@ -523,6 +532,11 @@ function App() {
         body: formData
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error?.message || `Upload failed with status ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.secure_url) {
@@ -540,7 +554,7 @@ function App() {
         e.target.reset();
         alert('Resource uploaded successfully!');
       } else {
-        throw new Error(data.error?.message || "Failed to upload to Cloudinary");
+        throw new Error(data.error?.message || "Failed to get secure URL from Cloudinary");
       }
     } catch (err) {
       alert("Upload failed: " + err.message);
