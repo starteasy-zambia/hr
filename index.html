@@ -1522,10 +1522,51 @@ function App() {
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0A1F12', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>Core Leadership & Execution</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 40 }}>
                   {[
-                    { title: 'Founder & CEO / Managing Director', dept: 'Leadership', icon: 'fa-crown', color: '#E8730F', bg: '#FFF9E6', desc: 'Company vision, strategy, partnerships, fundraising, revenue performance, and building a strong inclusive culture.' },
-                    { title: 'Technical & Product Lead', dept: 'Technology', icon: 'fa-laptop-code', color: '#1B6CA8', bg: '#E6F0F9', desc: 'Maintaining the web application, managing security and privacy, and turning customer feedback into product improvements.' },
-                    { title: 'Business Operations & Service Delivery Lead', dept: 'Operations', icon: 'fa-briefcase', color: '#1E7B3C', bg: '#EAF7EE', desc: 'Managing customer requests end-to-end, developing SOPs, ensuring quality assurance, and coordinating external professionals.' },
-                    { title: 'Growth, Sales & Partnerships Lead', dept: 'Commercial Growth', icon: 'fa-chart-line', color: '#B8564F', bg: '#FFE8E5', desc: 'Acquiring paying customers, recruiting reliable suppliers, testing pricing, and tracking conversions and repeat purchases.' }
+                    { 
+                      title: 'Founder & CEO / Managing Director', 
+                      dept: 'Leadership', 
+                      icon: 'fa-crown', 
+                      color: '#E8730F', 
+                      bg: '#FFF9E6', 
+                      desc: 'Company vision, strategy, partnerships, fundraising, revenue performance, and building a strong inclusive culture.',
+                      capability: 'B - Entrepreneurship and commercial development: ability to turn an early-stage idea into a viable business model, develop revenue streams and manage limited resources.'
+                    },
+                    { 
+                      title: 'Technical & Product Lead', 
+                      dept: 'Technology', 
+                      icon: 'fa-laptop-code', 
+                      color: '#1B6CA8', 
+                      bg: '#E6F0F9', 
+                      desc: 'Maintaining the web application, managing security and privacy, and turning customer feedback into product improvements.',
+                      capability: 'E - Digital product awareness: enough understanding of technology-enabled businesses to work effectively with developers and improve the StartEasy platform.'
+                    },
+                    { 
+                      title: 'Director - Finance & Administration', 
+                      dept: 'Finance', 
+                      icon: 'fa-coins', 
+                      color: '#8A6828', 
+                      bg: '#F5F0E6', 
+                      desc: 'Manage StartEasy\'s money, plan its finances, and make informed financial decisions. Bookkeeping, budget preparation, financial planning, cash flow management, invoicing, financial reports, and business funding guidance.',
+                      capability: 'D - Financial management: budgeting, pricing services, cash-flow management and understanding unit economics.'
+                    },
+                    { 
+                      title: 'Business Operations & Service Delivery Lead', 
+                      dept: 'Operations', 
+                      icon: 'fa-briefcase', 
+                      color: '#1E7B3C', 
+                      bg: '#EAF7EE', 
+                      desc: 'Managing customer requests end-to-end, developing SOPs, ensuring quality assurance, and coordinating external professionals.',
+                      capability: 'A - Business operations: experience running projects, coordinating services, managing customers and ensuring work is delivered reliably.'
+                    },
+                    { 
+                      title: 'Growth, Sales & Partnerships Lead', 
+                      dept: 'Commercial Growth', 
+                      icon: 'fa-chart-line', 
+                      color: '#B8564F', 
+                      bg: '#FFE8E5', 
+                      desc: 'Acquiring paying customers, recruiting reliable suppliers, testing pricing, and tracking conversions and repeat purchases.',
+                      capability: 'C - Sales, marketing and partnerships: ability to acquire customers, build trust with entrepreneurs and SMEs, negotiate partnerships and generate revenue.'
+                    }
                   ].map((role, i) => (
                     <div key={i} style={{ padding: 24, background: '#F9FBFA', border: '1px solid #eee', borderRadius: 12, display: 'flex', flexDirection: 'column' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -1537,7 +1578,12 @@ function App() {
                           <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#0A1F12', lineHeight: 1.3 }}>{role.title}</h4>
                         </div>
                       </div>
-                      <p style={{ fontSize: 13, color: 'rgba(10,31,18,0.7)', lineHeight: 1.6, margin: 0 }}>{role.desc}</p>
+                      <p style={{ fontSize: 13, color: 'rgba(10,31,18,0.7)', lineHeight: 1.6, margin: '0 0 16px 0', flexGrow: 1 }}>{role.desc}</p>
+                      
+                      <div style={{ background: '#fff', border: '1px dashed #ccc', borderRadius: 8, padding: 12 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', color: '#666', display: 'block', marginBottom: 4 }}>Key Capability</span>
+                        <p style={{ fontSize: 12.5, color: '#0A1F12', margin: 0, lineHeight: 1.5 }}>{role.capability}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
