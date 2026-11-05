@@ -560,6 +560,12 @@ function App() {
   const [resDesc, setResDesc] = useState('');
   const [resFile, setResFile] = useState(null);
 
+  // Admin Edit Member State
+  const [editingMember, setEditingMember] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editRoleId, setEditRoleId] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
   // Auth forms
   const [authPassword, setAuthPassword] = useState('');
   const [authConfirmPassword, setAuthConfirmPassword] = useState('');
@@ -749,6 +755,27 @@ function App() {
       await db.collection('se_appointees').doc(memberId).delete();
     } catch (err) {
       alert("Error deleting member: " + err.message);
+    }
+  };
+
+  // Handle Editing a Team Member's Role
+  const handleEditMember = async (e) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    
+    setEditSaving(true);
+    try {
+      const newRole = ROLES[editRoleId];
+      await db.collection('se_appointees').doc(editingMember.id).update({
+        name: editName.trim(),
+        roleId: newRole.id,
+        roleTitle: newRole.title
+      });
+      setEditingMember(null); // Close modal on success
+    } catch (err) {
+      alert("Error updating member: " + err.message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -1675,6 +1702,7 @@ function App() {
                           <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Name</th>
                           <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Email</th>
                           <th style={{ padding: 12, textAlign: 'left', fontWeight: 700 }}>Role</th>
+                          <th style={{ padding: 12, textAlign: 'center', fontWeight: 700 }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1683,6 +1711,21 @@ function App() {
                             <td style={{ padding: 12, fontWeight: 700 }}>{member.name}</td>
                             <td style={{ padding: 12 }}>{member.email}</td>
                             <td style={{ padding: 12 }}>{member.roleTitle}</td>
+                            <td style={{ padding: 12, textAlign: 'center' }}>
+                              <Btn 
+                                onClick={() => {
+                                  setEditingMember(member);
+                                  setEditName(member.name);
+                                  // Default to growth_lead if roleId is missing from older records
+                                  setEditRoleId(member.roleId || 'growth_lead'); 
+                                }} 
+                                size="sm" 
+                                variant="ghost"
+                                style={{ padding: '6px 12px', fontSize: 12 }}
+                              >
+                                <i className="fas fa-edit"></i> Edit
+                              </Btn>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1897,6 +1940,51 @@ function App() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── ADMIN EDIT MEMBER MODAL ─── */}
+        {editingMember && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(10,31,18,0.6)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div className="fadein" style={{ background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 className="serif" style={{ fontSize: 24, color: '#0A1F12', margin: 0 }}>Edit Appointee Role</h2>
+                <button onClick={() => setEditingMember(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#666' }}><i className="fas fa-times"></i></button>
+              </div>
+              
+              <form onSubmit={handleEditMember}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#0A1F12' }}>Full Name</label>
+                <input 
+                  type="text" 
+                  value={editName} 
+                  onChange={e => setEditName(e.target.value)} 
+                  required 
+                  style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }} 
+                />
+
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#0A1F12' }}>Assigned Role</label>
+                <select 
+                  value={editRoleId} 
+                  onChange={e => setEditRoleId(e.target.value)} 
+                  required 
+                  style={{ width: '100%', padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 24, background: '#fff' }}
+                >
+                  <option value="" disabled>Select a role...</option>
+                  {Object.values(ROLES).map(role => (
+                    <option key={role.id} value={role.id}>{role.title}</option>
+                  ))}
+                </select>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <Btn type="submit" disabled={editSaving} variant="primary" style={{ flex: 1 }}>
+                    {editSaving ? <><i className="fas fa-circle-notch spin"></i> Saving...</> : 'Save Changes'}
+                  </Btn>
+                  <Btn type="button" onClick={() => setEditingMember(null)} variant="ghost" style={{ flex: 1 }}>
+                    Cancel
+                  </Btn>
+                </div>
+              </form>
             </div>
           </div>
         )}
