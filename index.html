@@ -947,18 +947,43 @@ function App() {
     setTimeout(() => { setItRequest(''); setItRequestSent(false); }, 4000);
   };
 
-  // --- PDF GENERATION LOGIC ---
+  // --- PDF GENERATION LOGIC (SIGNUP) ---
   const handleDownloadPDF = () => {
     const element = document.getElementById('contract-to-pdf');
     if (!element) return;
 
     setIsDownloading(true);
 
-    // Wait a tiny bit for any rendering to settle
     setTimeout(() => {
       const opt = {
         margin:       0.5,
         filename:     `StartEasy_Agreement_${form.name.trim().replace(/\s+/g, '_') || 'Applicant'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        setIsDownloading(false);
+      }).catch((err) => {
+        console.error("PDF Generation failed:", err);
+        alert("There was an error generating the PDF. Please try again.");
+        setIsDownloading(false);
+      });
+    }, 100);
+  };
+
+  // --- PDF GENERATION LOGIC (DASHBOARD) ---
+  const handleDownloadDashboardPDF = () => {
+    const element = document.getElementById('dashboard-contract-to-pdf');
+    if (!element) return;
+
+    setIsDownloading(true);
+
+    setTimeout(() => {
+      const opt = {
+        margin:       0.5,
+        filename:     `StartEasy_Agreement_${userData.name.trim().replace(/\s+/g, '_') || 'Appointee'}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
@@ -984,6 +1009,9 @@ function App() {
 
   const isAdmin = userData?.email === 'lewismwaba@gmail.com';
   const displayRoleTitle = userData?.email === 'lewismwaba@gmail.com' ? 'Founder & Strategic Sponsor' : userData?.roleTitle;
+  
+  // Safe fetch of current user's role details for the dashboard PDF
+  const currentRoleDetails = userData && userData.roleId ? ROLES[userData.roleId] : ROLES['admin_advisor']; // fallback to avoid crashes
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -1603,6 +1631,17 @@ function App() {
                   <p style={{ fontSize: 14, fontWeight: 700 }}>— Mwaba Lewis, Founder</p>
                 </div>
 
+                {/* Download Agreement Card */}
+                <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>My Signed Agreement</h3>
+                  <p style={{ fontSize: 13, color: 'rgba(10,31,18,0.6)', marginBottom: 16, lineHeight: 1.5 }}>
+                    Need another copy of your signed engagement agreement? Download it directly here.
+                  </p>
+                  <Btn onClick={handleDownloadDashboardPDF} disabled={isDownloading} variant="dark" style={{ width: '100%' }}>
+                    {isDownloading ? <><i className="fas fa-circle-notch spin"></i> Generating...</> : <><i className="fas fa-file-pdf"></i> Download Agreement</>}
+                  </Btn>
+                </div>
+
                 <div style={{ background: '#fff', borderRadius: 16, padding: 32, border: '1px solid rgba(10,31,18,0.08)' }}>
                   <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>Request IT Setup</h3>
                   {itRequestSent ? (
@@ -1941,6 +1980,58 @@ function App() {
                 </div>
               </div>
             </div>
+            
+            {/* HIDDEN DASHBOARD PDF RENDERER */}
+            <div id="dashboard-contract-to-pdf" className="el printable" style={{ display: 'none' }}>
+              <div className="eh">
+                <div><div className="brand">Start<em>Easy Zambia</em></div><div className="sub">Founding Team Engagement</div></div>
+                <div><div className="dt">AGREEMENT OF ENGAGEMENT</div><div className="mt">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div></div>
+              </div>
+              
+              <p>This Agreement of Engagement (the "Agreement") is entered into on this {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })} by and between <strong>StartEasy Zambia</strong> (the "Company") and <strong>{userData.name}</strong> (the "Appointee").</p>
+
+              <h4>1. Appointment and Reporting</h4>
+              <p>The Company hereby appoints the Appointee to the position of <strong>{userData.roleTitle}</strong>. {currentRoleDetails?.reporting || ''}</p>
+
+              <h4>2. Scope of Work and Responsibilities</h4>
+              <p>The Appointee agrees to perform the following duties and responsibilities:</p>
+              <ul>{currentRoleDetails?.responsibilities.map((item, i) => <li key={i} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}</ul>
+
+              <h4>3. Compensation and Benefits</h4>
+              <p>In consideration of the services rendered, the Appointee shall be entitled to the following:</p>
+              <ul>{currentRoleDetails?.compensation.map((item, i) => <li key={i} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}</ul>
+
+              <h4>4. Terms and Conditions</h4>
+              <ul>{currentRoleDetails?.terms.map((item, i) => <li key={i} dangerouslySetInnerHTML={{__html: fmt(item)}} />)}</ul>
+
+              <h4>5. General Provisions</h4>
+              <p><strong>Governing Law:</strong> This Agreement shall be governed by and construed in accordance with the laws of the Republic of Zambia.</p>
+              <p><strong>Entire Agreement:</strong> This Agreement constitutes the entire agreement between the parties and supersedes all prior discussions, understandings, and agreements.</p>
+
+              <h4>6. Appointee Details</h4>
+              <div className="form-grid-2">
+                <span><strong>Full Name:</strong><br/><input className="doc-input-line" value={userData.name} readOnly /></span>
+                <span><strong>Email Address:</strong><br/><input className="doc-input-line" type="email" value={userData.email} readOnly /></span>
+                <span><strong>Phone Number:</strong><br/><input className="doc-input-line" value={userData.phone} readOnly /></span>
+                <span><strong>Physical Location:</strong><br/><input className="doc-input-line" value={userData.location} readOnly /></span>
+              </div>
+
+              <h4>7. Acceptance and Signature</h4>
+              <p>By signing below, the Appointee acknowledges that they have read, understood, and agree to be bound by the terms of this Agreement.</p>
+              
+              <div className="highlight-box">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <i className="fas fa-check-square" style={{ color: '#E8730F', fontSize: 20 }}></i>
+                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>I accept the terms of this agreement.</span>
+                </div>
+              </div>
+              <div className="sign">
+                <div><div className="sigval" style={{ color: '#1B6CA8' }}>Mwaba Lewis</div><div className="lbl">For StartEasy Zambia</div></div>
+                <div><div className="sigval" style={{ color: '#E8730F' }}>{userData.name}</div><div className="lbl">The Appointee</div></div>
+              </div>
+            </div>
+            {/* END HIDDEN DASHBOARD PDF RENDERER */}
+            
           </div>
         )}
 
